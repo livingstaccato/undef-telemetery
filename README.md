@@ -79,6 +79,8 @@ uv run python scripts/run_pytest_gate.py -k hypothesis -q --no-cov
 uv run python scripts/run_mutation_gate.py --python-version 3.11 --retries 1
 ```
 
+> Marker-specific runs (e.g., `-m otel`, `-m e2e`, `-k hypothesis`) already pass `--no-cov`; the strict 100% coverage gate only applies to the baseline `uv run python scripts/run_pytest_gate.py` invocation.
+
 `run_mutation_gate.py` automatically injects a local `setproctitle` compatibility shim for mutmut subprocesses.
 
 ## Python SPDX Header Convention
