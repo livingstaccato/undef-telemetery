@@ -278,10 +278,10 @@ def test_metric_factories_default_description_and_unit() -> None:
     mock_meter.create_counter.assert_called_once_with(name="ctr", description="", unit="")
     mock_meter.create_up_down_counter.assert_called_once_with(name="gg", description="", unit="")
     mock_meter.create_histogram.assert_called_once_with(name="hh", description="", unit="")
-    assert provider_mod.get_meter.__defaults__ == ("undef.telemetry",)
-    assert instruments_mod.counter.__defaults__ == ("", "")
-    assert instruments_mod.gauge.__defaults__ == ("", "")
-    assert instruments_mod.histogram.__defaults__ == ("", "")
+    assert provider_mod.get_meter.__defaults__ == (None,)
+    assert instruments_mod.counter.__defaults__ == (None, None)
+    assert instruments_mod.gauge.__defaults__ == (None, None)
+    assert instruments_mod.histogram.__defaults__ == (None, None)
 
 
 def test_metric_exception_fallback_preserves_name() -> None:

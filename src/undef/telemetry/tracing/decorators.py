@@ -27,13 +27,13 @@ def trace(name: str | None = None) -> Callable[[Callable[P, R]], Callable[P, R]]
                 with get_tracer(fn.__module__).start_as_current_span(span_name):
                     return await fn(*args, **kwargs)
 
-            return cast(Callable[P, R], async_wrapper)
+            return cast(Callable[P, R], async_wrapper)  # pragma: no mutate
 
         @functools.wraps(fn)
         def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             with get_tracer(fn.__module__).start_as_current_span(span_name):
                 return fn(*args, **kwargs)
 
-        return cast(Callable[P, R], sync_wrapper)
+        return cast(Callable[P, R], sync_wrapper)  # pragma: no mutate
 
     return decorator

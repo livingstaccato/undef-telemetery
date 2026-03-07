@@ -46,7 +46,7 @@ def test_get_tracer_with_otel(monkeypatch: pytest.MonkeyPatch) -> None:
     get_tracer()
     mock_api.get_tracer.assert_any_call("undef.telemetry")
     assert None not in [args[0][0] for args in mock_api.get_tracer.call_args_list]
-    assert provider_mod.get_tracer.__defaults__ == ("undef.telemetry",)
+    assert provider_mod.get_tracer.__defaults__ == (None,)
 
 
 def test_setup_tracing_branches(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -223,6 +223,31 @@ def test_trace_decorator_span_name_resolution(monkeypatch: pytest.MonkeyPatch) -
 
     assert asyncio.run(fn_named()) == 2
     assert seen == ["fn_default", "explicit.name"]
+
+
+def test_trace_decorator_span_name_for_callable_object(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[str | None] = []
+
+    class _Span:
+        def __enter__(self) -> None:
+            return None
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            return None
+
+    class _Tracer:
+        def start_as_current_span(self, name: str | None, **_: object) -> _Span:
+            seen.append(name)
+            return _Span()
+
+    class _Callable:
+        def __call__(self) -> int:
+            return 7
+
+    monkeypatch.setattr("undef.telemetry.tracing.decorators.get_tracer", lambda _name: _Tracer())
+    wrapped = trace()(_Callable())
+    assert wrapped() == 7
+    assert seen == ["_Callable"]
 
 
 def test_trace_async_preserves_context_across_await(monkeypatch: pytest.MonkeyPatch) -> None:

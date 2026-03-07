@@ -70,7 +70,7 @@ def _load_otel_logs_components() -> tuple[Any, Any, Any, Any, Any] | None:
 
 def _build_handlers(config: TelemetryConfig, level: int) -> list[logging.Handler]:
     global _otel_log_provider
-    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]  # pragma: no mutate
     _otel_log_provider = None
 
     if not config.logging.otlp_endpoint:

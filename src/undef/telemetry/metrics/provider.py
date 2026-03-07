@@ -80,12 +80,13 @@ def setup_metrics(config: TelemetryConfig) -> None:
         _meter = otel_metrics.get_meter("undef.telemetry")
 
 
-def get_meter(name: str = "undef.telemetry") -> Any | None:
+def get_meter(name: str | None = None) -> Any | None:
     if _meter is not None:
         return _meter
     otel_metrics = _load_otel_metrics_api()
     if otel_metrics is not None:
-        return otel_metrics.get_meter(name)
+        meter_name = "undef.telemetry" if name is None else name
+        return otel_metrics.get_meter(meter_name)
     return None
 
 

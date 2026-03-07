@@ -112,10 +112,11 @@ def shutdown_tracing() -> None:
         _provider_ref = None
 
 
-def get_tracer(name: str = "undef.telemetry") -> Any:
+def get_tracer(name: str | None = None) -> Any:
     otel_trace = _load_otel_trace_api()
     if otel_trace is not None:
-        return otel_trace.get_tracer(name)
+        tracer_name = "undef.telemetry" if name is None else name
+        return otel_trace.get_tracer(tracer_name)
     return _NoopTracer()
 
 

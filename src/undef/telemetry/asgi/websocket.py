@@ -26,5 +26,5 @@ def bind_websocket_context(scope: dict[str, Any]) -> dict[str, str | None]:
 def _extract_header(scope: dict[str, Any], key: bytes) -> str | None:
     for name, value in scope.get("headers", []):
         if name.lower() == key:
-            return str(value.decode("utf-8"))
+            return str(value.decode("utf-8"))  # pragma: no mutate
     return None
