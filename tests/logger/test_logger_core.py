@@ -296,6 +296,16 @@ def test_load_otel_logs_components_import_error(monkeypatch: pytest.MonkeyPatch)
     assert core_mod._load_otel_logs_components() is None
 
 
+def test_load_instrumentation_logging_handler_import_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _raise(name: str) -> object:
+        _ = name
+        raise ImportError
+
+    core_mod_any = cast(Any, core_mod)
+    monkeypatch.setattr(core_mod_any.importlib, "import_module", _raise)
+    assert core_mod._load_instrumentation_logging_handler() is None
+
+
 def test_load_otel_logs_components_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(core_mod, "_has_otel_logs", lambda: True)
 
@@ -344,6 +354,8 @@ def test_build_handlers_with_otel_endpoint(monkeypatch: pytest.MonkeyPatch) -> N
             "OTEL_EXPORTER_OTLP_LOGS_HEADERS": "Authorization=Basic%20abc",
         }
     )
+
+    monkeypatch.setattr(core_mod, "_load_instrumentation_logging_handler", lambda: None)
 
     class _Resource:
         @staticmethod
@@ -409,6 +421,75 @@ def test_build_handlers_with_otel_endpoint(monkeypatch: pytest.MonkeyPatch) -> N
     assert exporter.endpoint == "http://logs"
     assert exporter.headers == {"Authorization": "Basic abc"}
     assert core_mod._otel_log_provider is provider
+
+
+def test_build_handlers_prefers_instrumentation_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = TelemetryConfig.from_env(
+        {
+            "UNDEF_TELEMETRY_SERVICE_NAME": "svc",
+            "UNDEF_TELEMETRY_VERSION": "1.0.0",
+            "UNDEF_LOG_CODE_ATTRIBUTES": "true",
+            "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "http://logs",
+        }
+    )
+
+    class _Resource:
+        @staticmethod
+        def create(values: dict[str, str]) -> dict[str, str]:
+            return values
+
+    class _Provider:
+        def __init__(self, resource: dict[str, str]) -> None:
+            self.resource = resource
+            self.processors: list[object] = []
+
+        def add_log_record_processor(self, proc: object) -> None:
+            self.processors.append(proc)
+
+        def shutdown(self) -> None:
+            return None
+
+    class _Exporter:
+        def __init__(self, endpoint: str, headers: dict[str, str]) -> None:
+            self.endpoint = endpoint
+            self.headers = headers
+
+    class _BatchProcessor:
+        def __init__(self, exporter: object) -> None:
+            self.exporter = exporter
+
+    class _InstrumentationHandler(logging.Handler):
+        def __init__(self, level: int, logger_provider: _Provider, log_code_attributes: bool = False) -> None:
+            super().__init__(level=level)
+            self.logger_provider = logger_provider
+            self.log_code_attributes = log_code_attributes
+
+    calls: dict[str, object] = {}
+
+    def _set_logger_provider(provider: _Provider) -> None:
+        calls["provider"] = provider
+
+    monkeypatch.setattr(core_mod, "_load_instrumentation_logging_handler", lambda: _InstrumentationHandler)
+    monkeypatch.setattr(
+        core_mod,
+        "_load_otel_logs_components",
+        lambda: (
+            SimpleNamespace(set_logger_provider=_set_logger_provider),
+            SimpleNamespace(LoggerProvider=_Provider, LoggingHandler=object()),
+            SimpleNamespace(BatchLogRecordProcessor=_BatchProcessor),
+            _Resource,
+            _Exporter,
+        ),
+    )
+
+    handlers = core_mod._build_handlers(cfg, logging.INFO)
+    assert len(handlers) == 2
+    assert isinstance(handlers[1], _InstrumentationHandler)
+    assert handlers[1].log_code_attributes is True
+    provider = calls["provider"]
+    assert isinstance(provider, _Provider)
+    assert provider.resource["service.name"] == "svc"
+    assert provider.resource["service.version"] == "1.0.0"
 
 
 def test_shutdown_logging_without_provider() -> None:
