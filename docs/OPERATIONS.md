@@ -37,13 +37,15 @@
 
 ## Event Naming Policy
 
-Use `domain.action.status`, all lowercase, underscores allowed.
+Use `domain.action.status`, all lowercase, underscores allowed, and exactly 3 segments.
 
 Examples:
 
 - `auth.login.success`
 - `session.connect.failed`
 - `ws.message.received`
+
+For dynamic names, use `undef.telemetry.event_name(domain, action, status)` to avoid invalid 4+ segment values.
 
 ## Failure Behavior
 
