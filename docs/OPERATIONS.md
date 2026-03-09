@@ -63,6 +63,7 @@ For dynamic names, use `undef.telemetry.event_name(domain, action, status)` to a
 ```bash
 uv sync --group dev
 uv run python scripts/check_max_loc.py --max-lines 500
+uv run python scripts/check_event_literals.py
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy src tests

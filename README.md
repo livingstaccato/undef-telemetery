@@ -75,6 +75,7 @@ uvx reuse lint
 uv run codespell
 uv run python scripts/check_max_loc.py --max-lines 500
 uv run python scripts/check_spdx_headers.py
+uv run python scripts/check_event_literals.py
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy src tests
