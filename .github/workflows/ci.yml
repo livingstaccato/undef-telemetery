@@ -9,6 +9,9 @@ on:
   schedule:
     - cron: "0 7 * * *"
 
+permissions:
+  contents: read
+
 jobs:
   docs-quality:
     runs-on: ubuntu-latest
