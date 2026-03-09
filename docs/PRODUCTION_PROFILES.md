@@ -79,3 +79,19 @@ If your process supports runtime policy updates, treat profile changes as an ato
 1. Update sampling and resilience settings first.
 2. Then tighten schema settings (`strict_event_name`, `strict_schema`).
 3. Monitor health snapshot counters (drops, retries, export failures).
+
+## Async Exporter Safety
+
+For async web services, keep retries/backoff at zero (the defaults):
+
+```bash
+export UNDEF_EXPORTER_LOGS_RETRIES=0
+export UNDEF_EXPORTER_TRACES_RETRIES=0
+export UNDEF_EXPORTER_METRICS_RETRIES=0
+export UNDEF_EXPORTER_LOGS_BACKOFF_SECONDS=0.0
+export UNDEF_EXPORTER_TRACES_BACKOFF_SECONDS=0.0
+export UNDEF_EXPORTER_METRICS_BACKOFF_SECONDS=0.0
+```
+
+If you intentionally allow blocking retry behavior inside the event loop, set:
+`UNDEF_EXPORTER_*_ALLOW_BLOCKING_EVENT_LOOP=true`.

@@ -89,6 +89,7 @@ Script references:
 - Baseline test gate runs at `100%` branch coverage (`--cov-branch`).
 - Mutation gate enforces `--min-mutation-score 100`.
 - CI validates linting, typing, security, compliance, examples, and integration slices.
+- Async-safe default exporter policy keeps retries/backoff at zero; non-zero async retry behavior is opt-in via `UNDEF_EXPORTER_*_ALLOW_BLOCKING_EVENT_LOOP=true`.
 
 ## Documentation Ownership
 

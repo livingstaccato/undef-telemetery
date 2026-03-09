@@ -166,6 +166,7 @@ tests_dir = ["tests/"]
 do_not_mutate = [
   "src/undef/telemetry/backpressure.py",
   "src/undef/telemetry/cardinality.py",
+  "src/undef/telemetry/asgi/middleware.py",
   "src/undef/telemetry/health.py",
   "src/undef/telemetry/logger/core.py",
   "src/undef/telemetry/logger/processors.py",

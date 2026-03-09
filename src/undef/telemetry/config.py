@@ -91,6 +91,9 @@ class ExporterPolicyConfig:
     logs_fail_open: bool = True
     traces_fail_open: bool = True
     metrics_fail_open: bool = True
+    logs_allow_blocking_in_event_loop: bool = False
+    traces_allow_blocking_in_event_loop: bool = False
+    metrics_allow_blocking_in_event_loop: bool = False
 
 
 @dataclass(slots=True)
@@ -180,6 +183,15 @@ class TelemetryConfig:
                 logs_fail_open=_parse_bool(data.get("UNDEF_EXPORTER_LOGS_FAIL_OPEN"), True),
                 traces_fail_open=_parse_bool(data.get("UNDEF_EXPORTER_TRACES_FAIL_OPEN"), True),
                 metrics_fail_open=_parse_bool(data.get("UNDEF_EXPORTER_METRICS_FAIL_OPEN"), True),
+                logs_allow_blocking_in_event_loop=_parse_bool(
+                    data.get("UNDEF_EXPORTER_LOGS_ALLOW_BLOCKING_EVENT_LOOP"), False
+                ),
+                traces_allow_blocking_in_event_loop=_parse_bool(
+                    data.get("UNDEF_EXPORTER_TRACES_ALLOW_BLOCKING_EVENT_LOOP"), False
+                ),
+                metrics_allow_blocking_in_event_loop=_parse_bool(
+                    data.get("UNDEF_EXPORTER_METRICS_ALLOW_BLOCKING_EVENT_LOOP"), False
+                ),
             ),
             slo=SLOConfig(
                 enable_red_metrics=_parse_bool(data.get("UNDEF_SLO_ENABLE_RED_METRICS"), False),

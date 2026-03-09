@@ -140,6 +140,9 @@ def test_telemetry_from_env_values() -> None:
             "UNDEF_EXPORTER_LOGS_FAIL_OPEN": "false",
             "UNDEF_EXPORTER_TRACES_FAIL_OPEN": "false",
             "UNDEF_EXPORTER_METRICS_FAIL_OPEN": "false",
+            "UNDEF_EXPORTER_LOGS_ALLOW_BLOCKING_EVENT_LOOP": "true",
+            "UNDEF_EXPORTER_TRACES_ALLOW_BLOCKING_EVENT_LOOP": "true",
+            "UNDEF_EXPORTER_METRICS_ALLOW_BLOCKING_EVENT_LOOP": "true",
             "UNDEF_SLO_ENABLE_RED_METRICS": "true",
             "UNDEF_SLO_ENABLE_USE_METRICS": "true",
             "UNDEF_SLO_INCLUDE_ERROR_TAXONOMY": "false",
@@ -184,6 +187,9 @@ def test_telemetry_from_env_values() -> None:
     assert cfg.exporter.logs_fail_open is False
     assert cfg.exporter.traces_fail_open is False
     assert cfg.exporter.metrics_fail_open is False
+    assert cfg.exporter.logs_allow_blocking_in_event_loop is True
+    assert cfg.exporter.traces_allow_blocking_in_event_loop is True
+    assert cfg.exporter.metrics_allow_blocking_in_event_loop is True
     assert cfg.slo.enable_red_metrics is True
     assert cfg.slo.enable_use_metrics is True
     assert cfg.slo.include_error_taxonomy is False

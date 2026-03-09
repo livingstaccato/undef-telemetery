@@ -33,6 +33,15 @@ See also: [`docs/PRODUCTION_PROFILES.md`](PRODUCTION_PROFILES.md) for strict/com
 - `OTEL_EXPORTER_OTLP_TRACES_HEADERS`
 - `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`
 - `OTEL_EXPORTER_OTLP_METRICS_HEADERS`
+- `UNDEF_EXPORTER_LOGS_RETRIES`
+- `UNDEF_EXPORTER_TRACES_RETRIES`
+- `UNDEF_EXPORTER_METRICS_RETRIES`
+- `UNDEF_EXPORTER_LOGS_BACKOFF_SECONDS`
+- `UNDEF_EXPORTER_TRACES_BACKOFF_SECONDS`
+- `UNDEF_EXPORTER_METRICS_BACKOFF_SECONDS`
+- `UNDEF_EXPORTER_LOGS_ALLOW_BLOCKING_EVENT_LOOP`
+- `UNDEF_EXPORTER_TRACES_ALLOW_BLOCKING_EVENT_LOOP`
+- `UNDEF_EXPORTER_METRICS_ALLOW_BLOCKING_EVENT_LOOP`
 - `OPENOBSERVE_URL`
 - `OPENOBSERVE_USER`
 - `OPENOBSERVE_PASSWORD`
@@ -47,6 +56,7 @@ Operationally, keep strict validation enabled unless you are in an explicit migr
 - Missing OTel dependencies: tracing falls back to no-op tracer objects and metrics use in-process fallback wrappers.
 - Invalid event names with strict event mode enabled: raises `EventSchemaError`.
 - Missing required keys: raises `EventSchemaError` only when `UNDEF_TELEMETRY_STRICT_SCHEMA=true`.
+- Async services: keep exporter retries/backoff at zero (default). Non-zero values can block request handlers; runtime guard forces fail-fast unless explicit `*_ALLOW_BLOCKING_EVENT_LOOP=true`.
 
 ## Lifecycle
 
@@ -79,6 +89,16 @@ uv run python scripts/run_performance_smoke.py --iterations 300000
 
 Note: `run_mutation_gate.py` injects a no-op `setproctitle` shim for mutmut subprocesses to avoid known segfault behavior on some hosts.
 Marker-specific runs (`-m otel`, `-m e2e`, `tests/fuzz`/`tests/property`, etc.) should continue to pass `--no-cov` because the strict 100% coverage gate applies only to the default `pytest` run.
+
+## Docs Quality
+
+The `docs-quality` CI job is a required gate. Run the same checks locally:
+
+```bash
+uv sync --group dev
+uv run python scripts/check_docs_accuracy.py
+uv run python scripts/run_pytest_gate.py tests/docs tests/tooling/test_check_docs_accuracy.py --no-cov -q
+```
 
 ## Act / Docker-in-Docker Quality Runs
 
