@@ -39,19 +39,12 @@ See also: [`docs/PRODUCTION_PROFILES.md`](PRODUCTION_PROFILES.md) for strict/com
 
 ## Event Naming Policy
 
-Use `domain.action.status`, all lowercase, underscores allowed, and exactly 3 segments.
-
-Examples:
-
-- `auth.login.success`
-- `session.connect.failed`
-- `ws.message.received`
-
-For dynamic names, use `undef.telemetry.event_name(domain, action, status)` to avoid invalid 4+ segment values.
+Canonical naming rules and examples live in [`docs/CONVENTIONS.md`](CONVENTIONS.md).
+Operationally, keep strict validation enabled unless you are in an explicit migration window.
 
 ## Failure Behavior
 
-- Missing OTel dependencies: library falls back to no-op tracing/metrics wrappers.
+- Missing OTel dependencies: tracing falls back to no-op tracer objects and metrics use in-process fallback wrappers.
 - Invalid event names with strict event mode enabled: raises `EventSchemaError`.
 - Missing required keys: raises `EventSchemaError` only when `UNDEF_TELEMETRY_STRICT_SCHEMA=true`.
 

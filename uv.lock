@@ -2144,7 +2144,6 @@ wheels = [
 
 [[package]]
 name = "undef-telemetry"
-version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "structlog" },
@@ -2211,7 +2210,7 @@ requires-dist = [
     { name = "prometheus-client", marker = "extra == 'prometheus'", specifier = ">=0.23.1" },
     { name = "starlette", marker = "extra == 'fastapi'", specifier = ">=0.40.0" },
     { name = "structlog", specifier = ">=24.0.0" },
-    { name = "undef-telemetry", extras = ["otel", "prometheus", "fastapi"], marker = "extra == 'all'" },
+    { name = "undef-telemetry", extras = ["fastapi", "otel", "prometheus"], marker = "extra == 'all'" },
 ]
 provides-extras = ["otel", "prometheus", "fastapi", "all"]
 
