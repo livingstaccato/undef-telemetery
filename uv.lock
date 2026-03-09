@@ -2147,7 +2147,6 @@ name = "undef-telemetry"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "pydantic" },
     { name = "structlog" },
 ]
 
@@ -2210,7 +2209,6 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-logging", marker = "extra == 'otel'", specifier = ">=0.61b0" },
     { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.27.0" },
     { name = "prometheus-client", marker = "extra == 'prometheus'", specifier = ">=0.23.1" },
-    { name = "pydantic", specifier = ">=2.10.0" },
     { name = "starlette", marker = "extra == 'fastapi'", specifier = ">=0.40.0" },
     { name = "structlog", specifier = ">=24.0.0" },
     { name = "undef-telemetry", extras = ["otel", "prometheus", "fastapi"], marker = "extra == 'all'" },

@@ -13,7 +13,6 @@ license-files = ["LICENSES/*"]
 authors = [{name = "MindTenet LLC"}]
 dependencies = [
   "structlog>=24.0.0",
-  "pydantic>=2.10.0",
 ]
 
 [project.urls]

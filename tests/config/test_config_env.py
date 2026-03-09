@@ -7,7 +7,15 @@ from __future__ import annotations
 
 import pytest
 
-from undef.telemetry.config import LoggingConfig, TelemetryConfig, TracingConfig, _parse_bool, _parse_otlp_headers
+from undef.telemetry.config import (
+    BackpressureConfig,
+    LoggingConfig,
+    SamplingConfig,
+    TelemetryConfig,
+    TracingConfig,
+    _parse_bool,
+    _parse_otlp_headers,
+)
 
 
 def test_parse_bool() -> None:
@@ -34,21 +42,52 @@ def test_parse_otlp_headers() -> None:
 
 
 def test_logging_config_validation() -> None:
-    with pytest.raises(ValueError):
+    assert LoggingConfig(level="trace").level == "TRACE"
+    for level in ("TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+        assert LoggingConfig(level=level).level == level
+    assert LoggingConfig(fmt="console").fmt == "console"
+    assert LoggingConfig(fmt="json").fmt == "json"
+    with pytest.raises(ValueError, match="invalid log level: bad"):
         LoggingConfig(level="bad")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="invalid log format: xml"):
         LoggingConfig(fmt="xml")
+    with pytest.raises(ValueError, match="invalid log format: JSON"):
+        LoggingConfig(fmt="JSON")
 
 
 def test_tracing_config_validation() -> None:
-    with pytest.raises(ValueError):
+    assert TracingConfig(sample_rate=0.0).sample_rate == 0.0
+    assert TracingConfig(sample_rate=1.0).sample_rate == 1.0
+    with pytest.raises(ValueError, match="sample_rate must be between 0 and 1"):
         TracingConfig(sample_rate=1.1)
+    with pytest.raises(ValueError, match="sample_rate must be between 0 and 1"):
+        TracingConfig(sample_rate=-0.1)
+
+
+def test_sampling_config_validation_boundaries() -> None:
+    cfg = SamplingConfig(logs_rate=0.0, traces_rate=1.0, metrics_rate=0.5)
+    assert cfg.logs_rate == 0.0
+    assert cfg.traces_rate == 1.0
+    assert cfg.metrics_rate == 0.5
+    with pytest.raises(ValueError, match="sampling rate must be between 0 and 1"):
+        SamplingConfig(logs_rate=-0.01)
+    with pytest.raises(ValueError, match="sampling rate must be between 0 and 1"):
+        SamplingConfig(metrics_rate=1.01)
+
+
+def test_backpressure_config_validation_boundaries() -> None:
+    cfg = BackpressureConfig(logs_maxsize=0, traces_maxsize=1, metrics_maxsize=2)
+    assert cfg.logs_maxsize == 0
+    assert cfg.traces_maxsize == 1
+    assert cfg.metrics_maxsize == 2
+    with pytest.raises(ValueError, match="queue maxsize must be >= 0"):
+        BackpressureConfig(logs_maxsize=-1)
 
 
 def test_new_config_validation_guards() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="sampling rate must be between 0 and 1"):
         TelemetryConfig.from_env({"UNDEF_SAMPLING_LOGS_RATE": "1.1"})
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="queue maxsize must be >= 0"):
         TelemetryConfig.from_env({"UNDEF_BACKPRESSURE_LOGS_MAXSIZE": "-1"})
 
 
