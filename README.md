@@ -154,6 +154,7 @@ uv run python scripts/check_spdx_headers.py
 ## Docs
 
 - [Operations Runbook](docs/OPERATIONS.md)
+- [Production Profiles](docs/PRODUCTION_PROFILES.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Telemetry Conventions](docs/CONVENTIONS.md)
 - [Compliance Notes](docs/COMPLIANCE.md)

@@ -7,6 +7,8 @@
 - Event schema validation: enabled (`UNDEF_TELEMETRY_STRICT_EVENT_NAME=true` by default)
 - Strict schema mode: off by default (`UNDEF_TELEMETRY_STRICT_SCHEMA=false`)
 
+See also: [`docs/PRODUCTION_PROFILES.md`](PRODUCTION_PROFILES.md) for strict/compat/high-throughput presets.
+
 ## Core Environment Variables
 
 - `UNDEF_TELEMETRY_SERVICE_NAME`
