@@ -78,6 +78,8 @@ uv run python scripts/run_pytest_gate.py -m e2e --no-cov -q
 uv run python scripts/run_pytest_gate.py tests/fuzz tests/property --no-cov
 # Optional mutation pass (can take time)
 uv run python scripts/run_mutation_gate.py --python-version 3.11 --retries 1 --min-mutation-score 100
+# Optional performance smoke (report-only by default)
+uv run python scripts/run_performance_smoke.py --iterations 300000
 ```
 
 Note: `run_mutation_gate.py` injects a no-op `setproctitle` shim for mutmut subprocesses to avoid known segfault behavior on some hosts.

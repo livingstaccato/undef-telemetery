@@ -92,9 +92,19 @@ uv run python scripts/run_pytest_gate.py -m e2e --no-cov -q
 # Property + mutation quality gates
 uv run python scripts/run_pytest_gate.py -k hypothesis -q --no-cov
 uv run python scripts/run_mutation_gate.py --python-version 3.11 --retries 1 --min-mutation-score 100
+uv run python scripts/run_performance_smoke.py --iterations 300000
 ```
 
 > Marker-specific runs (e.g., `-m otel`, `-m e2e`, `-k hypothesis`) already pass `--no-cov`; the strict 100% coverage gate only applies to the baseline `uv run python scripts/run_pytest_gate.py` invocation.
+
+Performance smoke supports optional threshold enforcement:
+
+```bash
+uv run python scripts/run_performance_smoke.py --enforce \
+  --max-event-name-ns 2500 \
+  --max-should-sample-ns 4000 \
+  --max-sanitize-ns 6500
+```
 
 ## OpenObserve Verification
 
@@ -104,10 +114,13 @@ Set the OpenObserve credentials and run the e2e suite to prove all signals arriv
 export OPENOBSERVE_URL=http://localhost:5080/api/default
 export OPENOBSERVE_USER=tim@provide.io
 export OPENOBSERVE_PASSWORD=password
+export OPENOBSERVE_REQUIRED_SIGNALS=logs
 uv run --group dev --extra otel python examples/openobserve/01_emit_all_signals.py
 uv run --group dev --extra otel python examples/openobserve/02_verify_ingestion.py
 uv run python scripts/run_pytest_gate.py -m e2e --no-cov -q
 ```
+
+Set `OPENOBSERVE_REQUIRED_SIGNALS=logs,metrics,traces` when your runtime has OTel extras and you want hard all-signal verification.
 
 Once the run finishes, open `http://localhost:5080/web/streams?org_identifier=default` and search for:
 
