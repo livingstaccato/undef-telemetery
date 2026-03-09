@@ -40,7 +40,7 @@ When Docker access is proxied through `colima` (macOS) or you need to reuse the 
 configure the socket before running `act`:
 
 ```bash
-export DOCKER_HOST=unix:///Users/tim/.colima/default/docker.sock
+export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"
 ```
 
 Run the quality job manually with Docker-in-Docker support:
@@ -50,6 +50,15 @@ act -W .github/workflows/ci.yml workflow_dispatch -j quality \
   --container-architecture linux/amd64 \
   --container-daemon-socket "${DOCKER_HOST}" \
   -P ubuntu-latest=catthehacker/ubuntu:act-latest
+```
+
+For jobs that do not require Docker inside the container (for example `docs-quality`), disable
+daemon socket bind-mount:
+
+```bash
+act -W .github/workflows/ci.yml pull_request -j docs-quality \
+  --container-architecture linux/amd64 \
+  --container-daemon-socket -
 ```
 
 If you run `act` frequently, extend `.actrc` with the same options so every invocation reuses the

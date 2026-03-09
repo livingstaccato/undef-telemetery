@@ -102,14 +102,24 @@ uv run python scripts/run_pytest_gate.py tests/docs tests/tooling/test_check_doc
 
 ## Act / Docker-in-Docker Quality Runs
 
-When acting as a local runner reuse the host docker daemon socket. On macOS with `colima`:
+When acting as a local runner on macOS with `colima`, prefer `${HOME}`-based socket paths:
 
 ```bash
-export DOCKER_HOST=unix:///Users/tim/.colima/default/docker.sock
+export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"
 act -W .github/workflows/ci.yml workflow_dispatch -j quality \
   --container-architecture linux/amd64 \
   --container-daemon-socket "${DOCKER_HOST}" \
   -P ubuntu-latest=catthehacker/ubuntu:act-latest
+```
+
+For jobs that do not need Docker inside the job container (for example `docs-quality`), disable
+daemon socket bind-mount to avoid macOS/Colima mount issues:
+
+```bash
+export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"
+act -W .github/workflows/ci.yml pull_request -j docs-quality \
+  --container-architecture linux/amd64 \
+  --container-daemon-socket -
 ```
 
 Add the above to `.actrc` for quieter commands and document any socket/mount errors.
