@@ -49,7 +49,8 @@ uv run --group dev --extra otel python examples/telemetry/07_slo_pack_and_health
   - Emits logs, traces, and metrics via OTLP HTTP exporters.
 - `openobserve/02_verify_ingestion.py`
   - Captures pre/post stream document totals from OpenObserve API.
-  - Fails fast if logs/traces/metrics did not increase.
+  - Verifies required signals from `OPENOBSERVE_REQUIRED_SIGNALS` (default: `logs`).
+  - Set `OPENOBSERVE_REQUIRED_SIGNALS=logs,metrics,traces` when OTel extras are installed.
 - `openobserve/03_hardening_profile.py`
   - Uses hardening-focused config profile for sampling/backpressure/resilience/SLO.
   - Emits sanitized logs with W3C-ready tracing and metrics export.
@@ -60,6 +61,7 @@ Environment:
 export OPENOBSERVE_URL=http://localhost:5080/api/default
 export OPENOBSERVE_USER=tim@provide.io
 export OPENOBSERVE_PASSWORD=password
+export OPENOBSERVE_REQUIRED_SIGNALS=logs
 ```
 
 Run:
