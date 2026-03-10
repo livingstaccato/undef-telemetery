@@ -20,6 +20,7 @@ _active_config = TelemetryConfig.from_env({})
 
 
 def apply_runtime_config(config: TelemetryConfig) -> None:
+    """Apply a config snapshot to runtime signal policies."""
     global _active_config
     with _lock:
         snapshot = copy.deepcopy(config)
@@ -67,16 +68,19 @@ def apply_runtime_config(config: TelemetryConfig) -> None:
 
 
 def update_runtime_config(config: TelemetryConfig) -> TelemetryConfig:
+    """Apply config and return the active runtime snapshot."""
     apply_runtime_config(config)
     return get_runtime_config()
 
 
 def reload_runtime_from_env() -> TelemetryConfig:
+    """Reload environment config, apply it, and return the active snapshot."""
     cfg = TelemetryConfig.from_env()
     apply_runtime_config(cfg)
     return get_runtime_config()
 
 
 def get_runtime_config() -> TelemetryConfig:
+    """Return a defensive copy of the active runtime config snapshot."""
     with _lock:
         return copy.deepcopy(_active_config)
