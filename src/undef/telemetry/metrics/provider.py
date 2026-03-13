@@ -48,7 +48,7 @@ def setup_metrics(config: TelemetryConfig) -> None:
         return
 
     with _meter_lock:
-        if _meters.get("undef.telemetry") is not None:
+        if _meter_provider is not None:
             return
 
         components = _load_otel_metrics_components()
@@ -74,6 +74,9 @@ def setup_metrics(config: TelemetryConfig) -> None:
         provider = provider_cls(resource=resource, metric_readers=readers)
         otel_metrics.set_meter_provider(provider)
         _meter_provider = provider
+        # Clear stale meters cached before provider was set up so
+        # subsequent get_meter() calls return meters from the real provider.
+        _meters.clear()
         _meters["undef.telemetry"] = otel_metrics.get_meter("undef.telemetry")
 
 

@@ -19,13 +19,14 @@ import pytest
 from undef.telemetry.asgi import middleware as middleware_mod
 from undef.telemetry.asgi.middleware import TelemetryMiddleware
 from undef.telemetry.logger.context import clear_context, get_context
-from undef.telemetry.tracing.context import get_trace_context
+from undef.telemetry.tracing.context import get_trace_context, set_trace_context
 
 
 @pytest.fixture(autouse=True)
 def _clean_context() -> None:
     """Ensure context is clean before each test."""
     clear_context()
+    set_trace_context(None, None)
 
 
 async def _noop_receive() -> dict[str, Any]:
