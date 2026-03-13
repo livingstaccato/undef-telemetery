@@ -141,6 +141,17 @@ def get_tracer(name: str | None = None) -> _TracerLike:
     return _NoopTracer()
 
 
+def _sync_otel_trace_context() -> None:
+    """Sync the active OTel span's trace/span IDs into our contextvars."""
+    otel_trace = _load_otel_trace_api()
+    if otel_trace is None:
+        return
+    span = otel_trace.get_current_span()
+    ctx = span.get_span_context()
+    if ctx is not None and ctx.trace_id != 0 and ctx.span_id != 0:
+        set_trace_context(format(ctx.trace_id, "032x"), format(ctx.span_id, "016x"))
+
+
 class _LazyTracer:
     """Defers tracer resolution to call time so setup() takes effect."""
 

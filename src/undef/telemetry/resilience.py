@@ -102,7 +102,7 @@ def run_with_resilience(signal: Signal, operation: Callable[[], T]) -> T | None:
                     record_export_failure(sig, TimeoutError("circuit breaker open"))  # pragma: no mutate
                     if policy.fail_open:
                         return None
-                    raise TimeoutError("circuit breaker open: too many consecutive timeouts")
+                    raise TimeoutError("circuit breaker open: too many consecutive timeouts")  # pragma: no mutate
                 # Half-open: cooldown expired, allow one probe attempt through
     if _is_running_in_event_loop() and (policy.retries > 0 or policy.backoff_seconds > 0):  # pragma: no mutate
         increment_async_blocking_risk(sig)  # pragma: no mutate

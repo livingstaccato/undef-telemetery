@@ -143,6 +143,42 @@ class TestModuleAll:
             assert hasattr(mod, name), f"{module_path}.__all__ has {name!r} but it doesn't exist"
 
 
+# ── Lazy slo loading via __getattr__ ─────────────────────────────────
+
+
+class TestLazySloLoading:
+    def test_classify_error_accessible_via_top_level(self) -> None:
+        import undef.telemetry
+
+        fn = undef.telemetry.classify_error
+        assert callable(fn)
+        result = fn("ValueError", None)
+        assert "error_type" in result
+
+    def test_record_red_metrics_accessible_via_top_level(self) -> None:
+        import undef.telemetry
+
+        assert callable(undef.telemetry.record_red_metrics)
+
+    def test_record_use_metrics_accessible_via_top_level(self) -> None:
+        import undef.telemetry
+
+        assert callable(undef.telemetry.record_use_metrics)
+
+    def test_unknown_attr_raises_attribute_error(self) -> None:
+        import undef.telemetry
+
+        with pytest.raises(AttributeError, match="no_such_thing"):
+            undef.telemetry.no_such_thing  # noqa: B018
+
+    def test_all_entries_accessible(self) -> None:
+        """Every name in __all__ must be resolvable (including lazy ones)."""
+        import undef.telemetry
+
+        for name in undef.telemetry.__all__:
+            assert hasattr(undef.telemetry, name), f"__all__ has {name!r} but it's not accessible"
+
+
 # ── Metric creation logging ─────────────────────────────────────────
 
 

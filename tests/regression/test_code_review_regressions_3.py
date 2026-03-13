@@ -144,6 +144,40 @@ class TestCircuitBreaker:
         assert result is None
         assert call_count["n"] == 0
 
+    def test_zero_timeout_skips_circuit_breaker(self) -> None:
+        """When timeout_seconds=0, the circuit breaker check is skipped entirely."""
+        from undef.telemetry import resilience as r_mod
+
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.0))
+        with r_mod._lock:
+            r_mod._consecutive_timeouts["logs"] = 10  # well above threshold
+            r_mod._circuit_tripped_at["logs"] = 0.0
+        # Should NOT be blocked — timeout_seconds=0 means no timeout, so no circuit breaker
+        assert run_with_resilience("logs", lambda: "bypassed") == "bypassed"
+
+    def test_cooldown_exact_boundary_allows_probe(self) -> None:
+        """At exactly the cooldown boundary, the breaker should allow a probe."""
+        import time
+
+        from undef.telemetry import resilience as r_mod
+
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.0))
+        with r_mod._lock:
+            r_mod._consecutive_timeouts["logs"] = 3
+            r_mod._circuit_tripped_at["logs"] = time.monotonic() - r_mod._CIRCUIT_BREAKER_COOLDOWN
+        # elapsed == cooldown exactly → should allow probe (not <, so it passes through)
+        assert run_with_resilience("logs", lambda: "probe_ok") == "probe_ok"
+
+    def test_reset_clears_circuit_tripped_at(self) -> None:
+        """reset_resilience_for_tests must set _circuit_tripped_at to 0.0."""
+        from undef.telemetry import resilience as r_mod
+
+        with r_mod._lock:
+            r_mod._circuit_tripped_at["logs"] = 999.0
+        reset_resilience_for_tests()
+        with r_mod._lock:
+            assert r_mod._circuit_tripped_at["logs"] == 0.0
+
 
 # ── Issue #18: shutdown_telemetry resets runtime policies ──────────────
 

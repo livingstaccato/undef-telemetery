@@ -4,20 +4,23 @@
 # SPDX-Comment: Part of Undef Telemetry.
 #
 
-"""Performance characteristics of the telemetry library.
+"""⚡ Performance characteristics of the telemetry library.
 
 Demonstrates:
-- Import time of undef.telemetry (lazy imports keep it fast)
-- configure_logging() in isolation (no metrics subsystem loaded)
+- Import time of the full undef.telemetry package
+- configure_logging() cost
 - Hot-path instrument ops: counter.add(), gauge.set(), histogram.record()
 - Sampling decision throughput via should_sample()
 - Event name construction via event_name()
 - Full setup_telemetry() / shutdown_telemetry() lifecycle cost
+- Lazy-loading verification: processors.py has no direct slo dependency
 """
 
 from __future__ import annotations
 
+import ast
 import time
+from pathlib import Path
 
 
 def _bench(fn: object, iterations: int = 10_000) -> float:
@@ -40,19 +43,19 @@ def _fmt(ns: float) -> str:
 
 
 def main() -> None:
-    print("Performance Characteristics\n")
+    print("⚡ Performance Characteristics\n")
 
     rows: list[tuple[str, str]] = []
 
-    # -- Import time -----------------------------------------------------------
-    print("  Measuring import time...")
+    # ── 📦 Full package import ───────────────────────────────────────
+    print("📦 Full Package Import\n")
     t0 = time.perf_counter_ns()
     __import__("undef.telemetry")
     t1 = time.perf_counter_ns()
     rows.append(("import undef.telemetry", _fmt(t1 - t0)))
 
-    # -- Logging in isolation --------------------------------------------------
-    print("  Measuring configure_logging()...")
+    # ── ⚙️  configure_logging ────────────────────────────────────────
+    print("⚙️  Logging Configuration\n")
     from undef.telemetry.config import TelemetryConfig
     from undef.telemetry.logger.core import configure_logging
 
@@ -63,8 +66,8 @@ def main() -> None:
 
     rows.append(("configure_logging()", _fmt(_bench(do_configure, iterations=100))))
 
-    # -- Hot-path ops ----------------------------------------------------------
-    print("  Measuring hot-path instrument ops...")
+    # ── 🔥 Hot-path ops ──────────────────────────────────────────────
+    print("🔥 Hot-Path Instrument Operations\n")
     from undef.telemetry import counter, event_name, gauge, histogram
     from undef.telemetry.sampling import should_sample
 
@@ -88,11 +91,10 @@ def main() -> None:
         )
     )
 
-    # -- Full lifecycle --------------------------------------------------------
-    print("  Measuring setup/shutdown cycle...")
+    # ── 🔄 Full lifecycle ────────────────────────────────────────────
+    print("🔄 Setup / Shutdown Lifecycle\n")
     from undef.telemetry import setup_telemetry, shutdown_telemetry
 
-    # Warm up once so we measure steady-state
     shutdown_telemetry()
 
     def lifecycle() -> None:
@@ -101,13 +103,29 @@ def main() -> None:
 
     rows.append(("setup + shutdown cycle", _fmt(_bench(lifecycle, iterations=50))))
 
-    # -- Results table ---------------------------------------------------------
-    print("\n  Results\n")
+    # ── 📊 Results table ─────────────────────────────────────────────
+    print("📊 Results\n")
     max_label = max(len(r[0]) for r in rows)
     for label, value in rows:
         print(f"    {label:<{max_label}}  {value}")
 
-    print("\n  Done!")
+    # ── 🔌 Lazy-loading verification ─────────────────────────────────
+    print("\n🔌 Lazy-Loading Verification\n")
+    print("    processors.py uses a lazy import for classify_error (from slo.py)")
+    print("    so it has no direct module-level dependency on the metrics subsystem.")
+    print("    Verifying via AST analysis...\n")
+
+    from undef.telemetry.logger import processors as proc_mod
+
+    src = Path(str(proc_mod.__file__)).read_text()
+    tree = ast.parse(src)
+    slo_at_top = any(isinstance(stmt, ast.ImportFrom) and stmt.module and "slo" in stmt.module for stmt in tree.body)
+    if slo_at_top:
+        print("    ❌ slo is imported at module level (eager)")
+    else:
+        print("    ✅ No top-level slo import in processors.py (lazy, deferred to call time)")
+
+    print("\n🏁 Done!")
 
 
 if __name__ == "__main__":
