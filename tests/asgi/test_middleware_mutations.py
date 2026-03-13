@@ -118,8 +118,17 @@ class TestDurationCalculation:
 
         monkeypatch.setattr(middleware_mod, "record_red_metrics", _record)
 
-        times = iter([100.0, 100.05])  # 50ms apart
-        monkeypatch.setattr(time, "perf_counter", lambda: next(times))
+        # Use a simple counter that returns 100.0 for even calls and 100.05
+        # for odd calls. The middleware calls perf_counter at start (call N)
+        # and end (call N+1), so we get a 50ms diff regardless of how many
+        # calls other modules (e.g. resilience) make before the middleware.
+        # We achieve this by replacing time in the middleware module directly.
+        import types
+
+        fake_time = types.SimpleNamespace(perf_counter=time.perf_counter)
+        values = iter([100.0, 100.05])
+        fake_time.perf_counter = lambda: next(values)
+        monkeypatch.setattr(middleware_mod, "time", fake_time)
 
         async def app(_scope: dict[str, Any], _recv: Any, send_fn: Any) -> None:
             await send_fn({"type": "http.response.start", "status": 200})

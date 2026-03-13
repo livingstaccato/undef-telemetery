@@ -268,18 +268,21 @@ class TestDecoratorWithSubsystems:
         assert await fn() == 77
         assert get_trace_context() == {"trace_id": None, "span_id": None}
 
-    def test_sampling_accepted_creates_span(self) -> None:
-        """With default sampling (rate=1.0), span IS created."""
+    def test_sampling_accepted_creates_span(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """With default sampling (rate=1.0), NoopSpan sets trace context."""
+        monkeypatch.setattr(provider_mod, "_HAS_OTEL", False)
 
         @trace("span.created")
         def fn() -> dict[str, str | None]:
             return dict(get_trace_context())
 
         result = fn()
-        # NoopTracer will set trace context inside span
         assert result["trace_id"] is not None
 
-    async def test_async_sampling_accepted_creates_span(self) -> None:
+    async def test_async_sampling_accepted_creates_span(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """With default sampling (rate=1.0), NoopSpan sets trace context."""
+        monkeypatch.setattr(provider_mod, "_HAS_OTEL", False)
+
         @trace("async.span")
         async def fn() -> dict[str, str | None]:
             return dict(get_trace_context())
