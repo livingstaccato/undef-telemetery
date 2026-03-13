@@ -11,6 +11,8 @@ from unittest.mock import patch
 
 import pytest
 
+from undef.telemetry.backpressure import reset_queues_for_tests
+from undef.telemetry.sampling import reset_sampling_for_tests
 from undef.telemetry.slo import (
     _lazy_counter,
     _lazy_gauge,
@@ -24,7 +26,9 @@ from undef.telemetry.slo import (
 
 @pytest.fixture(autouse=True)
 def _reset_slo() -> None:
-    """Reset cached SLO instruments before each test."""
+    """Reset cached SLO instruments and dependencies before each test."""
+    reset_sampling_for_tests()
+    reset_queues_for_tests()
     _reset_slo_for_tests()
 
 
