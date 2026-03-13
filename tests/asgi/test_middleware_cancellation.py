@@ -36,7 +36,6 @@ async def _noop_send(_msg: dict[str, Any]) -> None:
     return None
 
 
-@pytest.mark.asyncio
 async def test_middleware_cleans_context_on_cancellation() -> None:
     """CancelledError during request processing still runs finally block."""
     app_entered = asyncio.Event()
@@ -63,7 +62,6 @@ async def test_middleware_cleans_context_on_cancellation() -> None:
     assert get_trace_context() == {"trace_id": None, "span_id": None}
 
 
-@pytest.mark.asyncio
 async def test_middleware_cleans_context_on_cancellation_with_auto_slo(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -103,7 +101,6 @@ async def test_middleware_cleans_context_on_cancellation_with_auto_slo(
     assert red_calls[0]["method"] == "POST"
 
 
-@pytest.mark.asyncio
 async def test_middleware_websocket_cancellation_cleans_context() -> None:
     """WebSocket connections cancelled mid-stream still clean up."""
     app_entered = asyncio.Event()
@@ -129,7 +126,6 @@ async def test_middleware_websocket_cancellation_cleans_context() -> None:
     assert get_trace_context() == {"trace_id": None, "span_id": None}
 
 
-@pytest.mark.asyncio
 async def test_middleware_concurrent_requests_isolated_context() -> None:
     """Multiple concurrent HTTP requests maintain isolated contexts."""
     seen_contexts: dict[str, dict[str, object]] = {}

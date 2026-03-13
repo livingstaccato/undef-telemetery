@@ -55,7 +55,7 @@ def _parse_traceparent(value: str | None) -> tuple[str | None, str | None]:
         int(trace_flags, 16)  # pragma: no mutate
     except ValueError:
         return (None, None)
-    return (trace_id, span_id)
+    return (trace_id.lower(), span_id.lower())
 
 
 def extract_w3c_context(scope: dict[str, Any]) -> PropagationContext:

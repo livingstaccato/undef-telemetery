@@ -26,6 +26,8 @@ from undef.telemetry.backpressure import (
 )
 from undef.telemetry.health import get_health_snapshot, reset_health_for_tests
 
+pytestmark = pytest.mark.integration
+
 STRESS_WORKERS = 12
 STRESS_ITERATIONS = 500
 

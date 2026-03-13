@@ -327,3 +327,64 @@ class TestResilienceRetryPathCoverage:
 
         with pytest.raises(RuntimeError, match="boom"):
             run_with_resilience("logs", _failing_op)
+
+
+# ── Issue #13: _reset helpers must hold _lock when writing _setup_done ─
+
+
+class TestResetUnderLock:
+    def test_reset_setup_state_holds_lock(self) -> None:
+        """_reset_setup_state_for_tests must hold _lock while writing _setup_done."""
+        from undef.telemetry import setup as setup_mod
+        from undef.telemetry.setup import _lock, _reset_setup_state_for_tests
+
+        setup_mod._setup_done = True
+        # Acquire lock from another perspective to verify it's not permanently held
+        _reset_setup_state_for_tests()
+        assert setup_mod._setup_done is False
+        # Lock must be released — this acquire should succeed immediately
+        assert _lock.acquire(timeout=0.1)
+        _lock.release()
+
+    def test_reset_all_holds_lock(self) -> None:
+        """_reset_all_for_tests must hold _lock while writing _setup_done."""
+        from undef.telemetry import setup as setup_mod
+        from undef.telemetry.setup import _lock
+
+        setup_mod._setup_done = True
+        _reset_all_for_tests()
+        assert setup_mod._setup_done is False
+        assert _lock.acquire(timeout=0.1)
+        _lock.release()
+
+
+# ── Issue #14: traceparent IDs must be normalized to lowercase ─────────
+
+
+class TestTraceparentNormalization:
+    def test_uppercase_trace_id_normalized(self) -> None:
+        from undef.telemetry.propagation import _parse_traceparent
+
+        trace_id, span_id = _parse_traceparent(
+            "00-0AF7651916CD43DD8448EB211C80319C-B7AD6B7169203331-01"
+        )
+        assert trace_id == "0af7651916cd43dd8448eb211c80319c"
+        assert span_id == "b7ad6b7169203331"
+
+    def test_mixed_case_trace_id_normalized(self) -> None:
+        from undef.telemetry.propagation import _parse_traceparent
+
+        trace_id, span_id = _parse_traceparent(
+            "00-0aF7651916cD43dD8448eB211c80319C-b7aD6B7169203331-01"
+        )
+        assert trace_id == "0af7651916cd43dd8448eb211c80319c"
+        assert span_id == "b7ad6b7169203331"
+
+    def test_lowercase_unchanged(self) -> None:
+        from undef.telemetry.propagation import _parse_traceparent
+
+        trace_id, span_id = _parse_traceparent(
+            "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+        )
+        assert trace_id == "0af7651916cd43dd8448eb211c80319c"
+        assert span_id == "b7ad6b7169203331"

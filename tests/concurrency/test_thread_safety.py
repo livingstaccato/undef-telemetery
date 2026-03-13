@@ -37,6 +37,8 @@ from undef.telemetry.sampling import (
 )
 from undef.telemetry.setup import _reset_all_for_tests
 
+pytestmark = pytest.mark.integration
+
 WORKERS = 8
 ITERATIONS = 200
 

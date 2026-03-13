@@ -72,12 +72,14 @@ def setup_telemetry(config: TelemetryConfig | None = None) -> TelemetryConfig:
 
 def _reset_setup_state_for_tests() -> None:
     global _setup_done
-    _setup_done = False
+    with _lock:
+        _setup_done = False
 
 
 def _reset_all_for_tests() -> None:
     global _setup_done
-    _setup_done = False
+    with _lock:
+        _setup_done = False
     _reset_logging()
     _reset_tracing()
     _reset_metrics(None)
