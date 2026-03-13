@@ -51,27 +51,37 @@ def setup_metrics(config: TelemetryConfig) -> None:
         if _meter_provider is not None:
             return
 
-        components = _load_otel_metrics_components()
-        otel_metrics = _load_otel_metrics_api()
-        if components is None or otel_metrics is None:
+    # Build exporter outside the lock to avoid blocking concurrent
+    # get_meter()/shutdown_metrics() callers during slow network I/O.
+    components = _load_otel_metrics_components()
+    otel_metrics = _load_otel_metrics_api()
+    if components is None or otel_metrics is None:
+        return
+
+    provider_cls, resource_cls, reader_cls, exporter_cls = components
+    readers: list[Any] = []
+    if config.metrics.otlp_endpoint:
+        exporter = run_with_resilience(
+            "metrics",
+            lambda: exporter_cls(
+                endpoint=config.metrics.otlp_endpoint,
+                headers=config.metrics.otlp_headers,
+                timeout=config.exporter.metrics_timeout_seconds,
+            ),
+        )
+        if exporter is not None:
+            readers.append(reader_cls(exporter))
+
+    resource = resource_cls.create({"service.name": config.service_name, "service.version": config.version})
+    provider = provider_cls(resource=resource, metric_readers=readers)
+
+    with _meter_lock:
+        if _meter_provider is not None:
+            # Another thread won the race — discard ours.
+            shutdown = getattr(provider, "shutdown", None)
+            if callable(shutdown):
+                shutdown()
             return
-
-        provider_cls, resource_cls, reader_cls, exporter_cls = components
-        readers: list[Any] = []
-        if config.metrics.otlp_endpoint:
-            exporter = run_with_resilience(
-                "metrics",
-                lambda: exporter_cls(
-                    endpoint=config.metrics.otlp_endpoint,
-                    headers=config.metrics.otlp_headers,
-                    timeout=config.exporter.metrics_timeout_seconds,
-                ),
-            )
-            if exporter is not None:
-                readers.append(reader_cls(exporter))
-
-        resource = resource_cls.create({"service.name": config.service_name, "service.version": config.version})
-        provider = provider_cls(resource=resource, metric_readers=readers)
         otel_metrics.set_meter_provider(provider)
         _meter_provider = provider
         # Clear stale meters cached before provider was set up so
@@ -82,9 +92,10 @@ def setup_metrics(config: TelemetryConfig) -> None:
 
 def get_meter(name: str | None = None) -> Any | None:
     meter_name = "undef.telemetry" if name is None else name
-    cached = _meters.get(meter_name)
-    if cached is not None:
-        return cached
+    with _meter_lock:
+        cached = _meters.get(meter_name)
+        if cached is not None:
+            return cached
     otel_metrics = _load_otel_metrics_api()
     if otel_metrics is not None:
         meter = otel_metrics.get_meter(meter_name)

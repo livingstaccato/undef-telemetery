@@ -70,7 +70,7 @@ class TestSetupDoneOrdering:
 
         _reset_setup_state_for_tests()
         monkeypatch.setattr("undef.telemetry.setup.apply_runtime_config", lambda _cfg: None)
-        monkeypatch.setattr("undef.telemetry.setup.configure_logging", lambda _cfg: None)
+        monkeypatch.setattr("undef.telemetry.setup.configure_logging", lambda _cfg, **kw: None)
         monkeypatch.setattr("undef.telemetry.setup._refresh_otel_tracing", lambda: None)
         monkeypatch.setattr("undef.telemetry.setup._refresh_otel_metrics", lambda: None)
         monkeypatch.setattr("undef.telemetry.setup.setup_tracing", lambda _cfg: None)

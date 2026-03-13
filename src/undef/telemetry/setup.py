@@ -26,6 +26,7 @@ from undef.telemetry.metrics.provider import _set_meter_for_test as _reset_metri
 from undef.telemetry.pii import reset_pii_rules_for_tests as _reset_pii
 from undef.telemetry.resilience import reset_resilience_for_tests as _reset_resilience
 from undef.telemetry.runtime import apply_runtime_config
+from undef.telemetry.runtime import reset_runtime_for_tests as _reset_runtime
 from undef.telemetry.sampling import reset_sampling_for_tests as _reset_sampling
 from undef.telemetry.slo import _rebind_slo_instruments, record_red_metrics, record_use_metrics
 from undef.telemetry.slo import _reset_slo_for_tests as _reset_slo
@@ -65,7 +66,7 @@ def setup_telemetry(config: TelemetryConfig | None = None) -> TelemetryConfig:
             apply_runtime_config(cfg)
             completed: list[str] = []
             try:
-                configure_logging(cfg)
+                configure_logging(cfg, force=True)
                 completed.append("configure_logging")
                 _refresh_otel_tracing()
                 _refresh_otel_metrics()
@@ -105,13 +106,15 @@ def _reset_all_for_tests() -> None:
     _reset_pii()
     _reset_cardinality()
     _reset_sampling()
+    _reset_runtime()
 
 
 def shutdown_telemetry() -> None:
-    """Flush and tear down telemetry providers when available."""
+    """Flush and tear down telemetry providers and reset runtime policies."""
     global _setup_done
     with _lock:
         _setup_done = False
         shutdown_tracing()
         shutdown_metrics()
         shutdown_logging()
+        _reset_runtime()

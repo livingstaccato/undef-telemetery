@@ -1,0 +1,224 @@
+# SPDX-FileCopyrightText: Copyright (C) 2026 MindTenet LLC
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-Comment: Part of Undef Telemetry.
+#
+
+"""Regression tests for code review issues (batch 3): circuit breaker,
+shutdown runtime reset, force-reconfigure, resolve concurrency, timeout backoff."""
+
+from __future__ import annotations
+
+from unittest.mock import Mock
+
+import pytest
+
+from undef.telemetry.config import TelemetryConfig
+from undef.telemetry.health import reset_health_for_tests
+from undef.telemetry.resilience import (
+    ExporterPolicy,
+    reset_resilience_for_tests,
+    run_with_resilience,
+    set_exporter_policy,
+)
+
+
+@pytest.fixture(autouse=True)
+def _clean_state() -> None:
+    reset_health_for_tests()
+    reset_resilience_for_tests()
+
+
+# ── Issue #17: circuit breaker in resilience ───────────────────────────
+
+
+class TestCircuitBreaker:
+    def test_circuit_breaker_opens_after_consecutive_timeouts(self) -> None:
+        """After 3 consecutive timeouts, circuit breaker should open."""
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.01))
+
+        def _slow_op() -> str:
+            import time
+
+            time.sleep(1.0)
+            return "never"
+
+        for _ in range(3):
+            assert run_with_resilience("logs", _slow_op) is None
+
+        call_count = {"n": 0}
+
+        def _should_not_run() -> str:
+            call_count["n"] += 1
+            return "bad"
+
+        assert run_with_resilience("logs", _should_not_run) is None
+        assert call_count["n"] == 0
+
+    def test_circuit_breaker_resets_on_success(self) -> None:
+        from undef.telemetry import resilience as r_mod
+
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.0))
+        with r_mod._lock:
+            r_mod._consecutive_timeouts["logs"] = 2
+        assert run_with_resilience("logs", lambda: "ok") == "ok"
+        with r_mod._lock:
+            assert r_mod._consecutive_timeouts["logs"] == 0
+
+    def test_circuit_breaker_raises_when_fail_closed(self) -> None:
+        from undef.telemetry import resilience as r_mod
+
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=False, timeout_seconds=1.0))
+        with r_mod._lock:
+            r_mod._consecutive_timeouts["logs"] = 3
+        with pytest.raises(TimeoutError, match="circuit breaker open"):
+            run_with_resilience("logs", lambda: "bad")
+
+    def test_non_timeout_error_resets_consecutive_counter(self) -> None:
+        from undef.telemetry import resilience as r_mod
+
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.0))
+        with r_mod._lock:
+            r_mod._consecutive_timeouts["logs"] = 2
+        run_with_resilience("logs", lambda: (_ for _ in ()).throw(RuntimeError("not a timeout")))
+        with r_mod._lock:
+            assert r_mod._consecutive_timeouts["logs"] == 0
+
+    def test_timeout_increments_consecutive_counter(self) -> None:
+        import time as _time
+
+        from undef.telemetry import resilience as r_mod
+
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.01))
+        run_with_resilience("logs", lambda: _time.sleep(1.0))
+        with r_mod._lock:
+            assert r_mod._consecutive_timeouts["logs"] == 1
+
+
+# ── Issue #18: shutdown_telemetry resets runtime policies ──────────────
+
+
+class TestShutdownResetsRuntime:
+    def test_shutdown_clears_runtime_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from undef.telemetry import runtime as runtime_mod
+        from undef.telemetry.setup import _reset_setup_state_for_tests, shutdown_telemetry
+
+        _reset_setup_state_for_tests()
+        runtime_mod.apply_runtime_config(TelemetryConfig(service_name="before-shutdown"))
+        assert runtime_mod.get_runtime_config().service_name == "before-shutdown"
+        monkeypatch.setattr("undef.telemetry.setup.shutdown_logging", lambda: None)
+        monkeypatch.setattr("undef.telemetry.setup.shutdown_tracing", lambda: None)
+        monkeypatch.setattr("undef.telemetry.setup.shutdown_metrics", lambda: None)
+        shutdown_telemetry()
+        assert runtime_mod.get_runtime_config().service_name != "before-shutdown"
+
+
+# ── Issue #19: configure_logging force parameter ──────────────────────
+
+
+class TestConfigureLoggingForce:
+    def test_force_reconfigures_even_with_same_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from undef.telemetry.logger import core as core_mod
+        from undef.telemetry.logger.core import configure_logging
+
+        monkeypatch.setattr(core_mod, "_build_handlers", lambda _cfg, _level: [])
+        cfg = TelemetryConfig.from_env({})
+        configure_logging(cfg)
+        assert core_mod._configured is True
+        calls = {"n": 0}
+
+        def _counting_build(config: object, level: object) -> list[object]:
+            calls["n"] += 1
+            return []
+
+        monkeypatch.setattr(core_mod, "_build_handlers", _counting_build)
+        configure_logging(cfg)
+        assert calls["n"] == 0
+        configure_logging(cfg, force=True)
+        assert calls["n"] == 1
+
+
+# ── Issue #20: fallback resolve double-check under concurrency ────────
+
+
+class TestFallbackResolveConcurrency:
+    def test_counter_double_check_returns_cached_on_race(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from undef.telemetry.metrics import fallback as fb_mod
+        from undef.telemetry.metrics.fallback import Counter
+
+        c = Counter("test.counter")
+        sentinel = Mock()
+        monkeypatch.setattr("undef.telemetry.metrics.provider.get_meter", lambda: Mock())
+        real_lock = fb_mod._RESOLVE_LOCK
+
+        class _IL:
+            def __enter__(self) -> _IL:
+                real_lock.acquire()
+                c._resolved = True
+                c._otel_counter = sentinel
+                return self
+
+            def __exit__(self, *a: object) -> None:
+                real_lock.release()
+
+        monkeypatch.setattr(fb_mod, "_RESOLVE_LOCK", _IL())
+        assert c._resolve_otel() is sentinel
+        monkeypatch.setattr(fb_mod, "_RESOLVE_LOCK", real_lock)
+
+    def test_gauge_double_check_returns_cached_on_race(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from undef.telemetry.metrics import fallback as fb_mod
+        from undef.telemetry.metrics.fallback import Gauge
+
+        g = Gauge("test.gauge")
+        sentinel = Mock()
+        monkeypatch.setattr("undef.telemetry.metrics.provider.get_meter", lambda: Mock())
+        real_lock = fb_mod._RESOLVE_LOCK
+
+        class _IL:
+            def __enter__(self) -> _IL:
+                real_lock.acquire()
+                g._resolved = True
+                g._otel_gauge = sentinel
+                return self
+
+            def __exit__(self, *a: object) -> None:
+                real_lock.release()
+
+        monkeypatch.setattr(fb_mod, "_RESOLVE_LOCK", _IL())
+        assert g._resolve_otel() is sentinel
+        monkeypatch.setattr(fb_mod, "_RESOLVE_LOCK", real_lock)
+
+    def test_histogram_double_check_returns_cached_on_race(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from undef.telemetry.metrics import fallback as fb_mod
+        from undef.telemetry.metrics.fallback import Histogram
+
+        h = Histogram("test.histo")
+        sentinel = Mock()
+        monkeypatch.setattr("undef.telemetry.metrics.provider.get_meter", lambda: Mock())
+        real_lock = fb_mod._RESOLVE_LOCK
+
+        class _IL:
+            def __enter__(self) -> _IL:
+                real_lock.acquire()
+                h._resolved = True
+                h._otel_histogram = sentinel
+                return self
+
+            def __exit__(self, *a: object) -> None:
+                real_lock.release()
+
+        monkeypatch.setattr(fb_mod, "_RESOLVE_LOCK", _IL())
+        assert h._resolve_otel() is sentinel
+        monkeypatch.setattr(fb_mod, "_RESOLVE_LOCK", real_lock)
+
+
+# ── Issue #21: timeout retry with backoff covers sleep path ───────────
+
+
+class TestTimeoutRetryWithBackoff:
+    def test_timeout_retry_sleeps_on_backoff(self) -> None:
+        import time as _time
+
+        set_exporter_policy(
+            "logs", ExporterPolicy(retries=1, backoff_seconds=0.001, fail_open=True, timeout_seconds=0.01)
+        )
+        assert run_with_resilience("logs", lambda: _time.sleep(1.0)) is None
