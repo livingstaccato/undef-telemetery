@@ -9,6 +9,9 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+import structlog
+
 from undef.telemetry.config import TelemetryConfig
 from undef.telemetry.logger.processors import (
     add_standard_fields,
@@ -203,16 +206,16 @@ class TestApplySamplingMutants:
             apply_sampling(None, "", {"event": "my.specific.event"})
         mock_sample.assert_called_once_with("logs", "my.specific.event")
 
-    def test_dropped_event_keys(self) -> None:
-        """Kills: 'telemetry.log.dropped' and 'dropped_event' key strings."""
-        with patch(
-            "undef.telemetry.logger.processors.should_sample",
-            return_value=False,
+    def test_dropped_event_raises_drop_event(self) -> None:
+        """When sampling rejects, DropEvent is raised to suppress the log."""
+        with (
+            patch(
+                "undef.telemetry.logger.processors.should_sample",
+                return_value=False,
+            ),
+            pytest.raises(structlog.DropEvent),
         ):
-            result = apply_sampling(None, "", {"event": "app.test.ok"})
-        assert result["event"] == "telemetry.log.dropped"
-        assert result["dropped_event"] == "app.test.ok"
-        assert len(result) == 2
+            apply_sampling(None, "", {"event": "app.test.ok"})
 
     def test_sampled_event_passes_through(self) -> None:
         """When sampled, original event_dict is returned unchanged."""
@@ -279,8 +282,8 @@ class TestEnforceEventSchemaMutants:
         assert "service" in actual_keys
         assert "env" in actual_keys
 
-    def test_required_keys_empty_when_not_strict(self) -> None:
-        """When strict_schema=False, required_keys should be empty tuple."""
+    def test_required_keys_respected_when_not_strict(self) -> None:
+        """When strict_schema=False, required_keys from config are still enforced."""
         config = TelemetryConfig.from_env(
             {
                 "UNDEF_TELEMETRY_STRICT_SCHEMA": "false",
@@ -297,4 +300,6 @@ class TestEnforceEventSchemaMutants:
             ) as mock_req,
         ):
             processor(None, "", {"event": "app.test.ok"})
-        mock_req.assert_called_once_with({"event": "app.test.ok"}, ())
+        actual_keys = mock_req.call_args[0][1]
+        assert "service" in actual_keys
+        assert "env" in actual_keys

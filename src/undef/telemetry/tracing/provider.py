@@ -131,4 +131,11 @@ def get_tracer(name: str | None = None) -> _TracerLike:
     return _NoopTracer()
 
 
-tracer = get_tracer()
+class _LazyTracer:
+    """Defers tracer resolution to call time so setup() takes effect."""
+
+    def start_as_current_span(self, name: str, **kwargs: object) -> AbstractContextManager[object]:
+        return get_tracer().start_as_current_span(name, **kwargs)
+
+
+tracer: _TracerLike = _LazyTracer()

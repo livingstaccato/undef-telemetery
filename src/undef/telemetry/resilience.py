@@ -94,7 +94,7 @@ def run_with_resilience(signal: Signal, operation: Callable[[], T]) -> T | None:
             latency_ms = (time.perf_counter() - started) * 1000.0  # pragma: no mutate
             record_export_success(signal, latency_ms=latency_ms)  # pragma: no mutate
             return result
-        except Exception as exc:  # pragma: no cover - specific paths covered in tests
+        except Exception as exc:
             last_error = exc
             record_export_failure(signal, exc)  # pragma: no mutate
             if attempt < attempts - 1:
@@ -136,9 +136,9 @@ def reset_resilience_for_tests() -> None:
         for signal in ("logs", "traces", "metrics"):
             _policies[signal] = ExporterPolicy()
         _async_warned_signals.clear()
-    if _timeout_executor is not None:
-        _timeout_executor.shutdown(wait=False)
-        _timeout_executor = None
+        if _timeout_executor is not None:
+            _timeout_executor.shutdown(wait=False)
+            _timeout_executor = None
 
 
 def _is_running_in_event_loop() -> bool:

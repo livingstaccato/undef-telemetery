@@ -140,7 +140,7 @@ class TelemetryConfig:
             ),
             tracing=TracingConfig(
                 enabled=_parse_bool(data.get("UNDEF_TRACE_ENABLED"), True),
-                sample_rate=float(data.get("UNDEF_TRACE_SAMPLE_RATE", "1.0")),
+                sample_rate=_parse_env_float(data.get("UNDEF_TRACE_SAMPLE_RATE", "1.0"), "UNDEF_TRACE_SAMPLE_RATE"),
                 otlp_endpoint=data.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") or data.get("OTEL_EXPORTER_OTLP_ENDPOINT"),
                 otlp_headers=_parse_otlp_headers(
                     data.get("OTEL_EXPORTER_OTLP_TRACES_HEADERS") or data.get("OTEL_EXPORTER_OTLP_HEADERS")
@@ -161,25 +161,25 @@ class TelemetryConfig:
                 ),
             ),
             sampling=SamplingConfig(
-                logs_rate=float(data.get("UNDEF_SAMPLING_LOGS_RATE", "1.0")),
-                traces_rate=float(data.get("UNDEF_SAMPLING_TRACES_RATE", "1.0")),
-                metrics_rate=float(data.get("UNDEF_SAMPLING_METRICS_RATE", "1.0")),
+                logs_rate=_parse_env_float(data.get("UNDEF_SAMPLING_LOGS_RATE", "1.0"), "UNDEF_SAMPLING_LOGS_RATE"),
+                traces_rate=_parse_env_float(data.get("UNDEF_SAMPLING_TRACES_RATE", "1.0"), "UNDEF_SAMPLING_TRACES_RATE"),
+                metrics_rate=_parse_env_float(data.get("UNDEF_SAMPLING_METRICS_RATE", "1.0"), "UNDEF_SAMPLING_METRICS_RATE"),
             ),
             backpressure=BackpressureConfig(
-                logs_maxsize=int(data.get("UNDEF_BACKPRESSURE_LOGS_MAXSIZE", "0")),
-                traces_maxsize=int(data.get("UNDEF_BACKPRESSURE_TRACES_MAXSIZE", "0")),
-                metrics_maxsize=int(data.get("UNDEF_BACKPRESSURE_METRICS_MAXSIZE", "0")),
+                logs_maxsize=_parse_env_int(data.get("UNDEF_BACKPRESSURE_LOGS_MAXSIZE", "0"), "UNDEF_BACKPRESSURE_LOGS_MAXSIZE"),
+                traces_maxsize=_parse_env_int(data.get("UNDEF_BACKPRESSURE_TRACES_MAXSIZE", "0"), "UNDEF_BACKPRESSURE_TRACES_MAXSIZE"),
+                metrics_maxsize=_parse_env_int(data.get("UNDEF_BACKPRESSURE_METRICS_MAXSIZE", "0"), "UNDEF_BACKPRESSURE_METRICS_MAXSIZE"),
             ),
             exporter=ExporterPolicyConfig(
-                logs_retries=int(data.get("UNDEF_EXPORTER_LOGS_RETRIES", "0")),
-                traces_retries=int(data.get("UNDEF_EXPORTER_TRACES_RETRIES", "0")),
-                metrics_retries=int(data.get("UNDEF_EXPORTER_METRICS_RETRIES", "0")),
-                logs_backoff_seconds=float(data.get("UNDEF_EXPORTER_LOGS_BACKOFF_SECONDS", "0.0")),
-                traces_backoff_seconds=float(data.get("UNDEF_EXPORTER_TRACES_BACKOFF_SECONDS", "0.0")),
-                metrics_backoff_seconds=float(data.get("UNDEF_EXPORTER_METRICS_BACKOFF_SECONDS", "0.0")),
-                logs_timeout_seconds=float(data.get("UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS", "10.0")),
-                traces_timeout_seconds=float(data.get("UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS", "10.0")),
-                metrics_timeout_seconds=float(data.get("UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS", "10.0")),
+                logs_retries=_parse_env_int(data.get("UNDEF_EXPORTER_LOGS_RETRIES", "0"), "UNDEF_EXPORTER_LOGS_RETRIES"),
+                traces_retries=_parse_env_int(data.get("UNDEF_EXPORTER_TRACES_RETRIES", "0"), "UNDEF_EXPORTER_TRACES_RETRIES"),
+                metrics_retries=_parse_env_int(data.get("UNDEF_EXPORTER_METRICS_RETRIES", "0"), "UNDEF_EXPORTER_METRICS_RETRIES"),
+                logs_backoff_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_LOGS_BACKOFF_SECONDS", "0.0"), "UNDEF_EXPORTER_LOGS_BACKOFF_SECONDS"),
+                traces_backoff_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_TRACES_BACKOFF_SECONDS", "0.0"), "UNDEF_EXPORTER_TRACES_BACKOFF_SECONDS"),
+                metrics_backoff_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_METRICS_BACKOFF_SECONDS", "0.0"), "UNDEF_EXPORTER_METRICS_BACKOFF_SECONDS"),
+                logs_timeout_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS", "10.0"), "UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS"),
+                traces_timeout_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS", "10.0"), "UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS"),
+                metrics_timeout_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS", "10.0"), "UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS"),
                 logs_fail_open=_parse_bool(data.get("UNDEF_EXPORTER_LOGS_FAIL_OPEN"), True),
                 traces_fail_open=_parse_bool(data.get("UNDEF_EXPORTER_TRACES_FAIL_OPEN"), True),
                 metrics_fail_open=_parse_bool(data.get("UNDEF_EXPORTER_METRICS_FAIL_OPEN"), True),
@@ -228,6 +228,20 @@ def _parse_bool(value: str | None, default: bool) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _parse_env_float(value: str, field: str) -> float:
+    try:
+        return float(value)
+    except ValueError:
+        raise ValueError(f"invalid float for {field}: {value!r}") from None
+
+
+def _parse_env_int(value: str, field: str) -> int:
+    try:
+        return int(value)
+    except ValueError:
+        raise ValueError(f"invalid integer for {field}: {value!r}") from None
 
 
 def _parse_otlp_headers(value: str | None) -> dict[str, str]:

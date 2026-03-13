@@ -10,12 +10,18 @@ from __future__ import annotations
 import contextlib
 import threading
 
+from undef.telemetry.backpressure import reset_queues_for_tests as _reset_queues
+from undef.telemetry.cardinality import clear_cardinality_limits as _reset_cardinality
 from undef.telemetry.config import TelemetryConfig
+from undef.telemetry.health import reset_health_for_tests as _reset_health
 from undef.telemetry.logger.core import _reset_logging_for_tests as _reset_logging
 from undef.telemetry.logger.core import configure_logging, shutdown_logging
 from undef.telemetry.metrics.provider import _refresh_otel_metrics, setup_metrics, shutdown_metrics
 from undef.telemetry.metrics.provider import _set_meter_for_test as _reset_metrics
+from undef.telemetry.pii import reset_pii_rules_for_tests as _reset_pii
+from undef.telemetry.resilience import reset_resilience_for_tests as _reset_resilience
 from undef.telemetry.runtime import apply_runtime_config
+from undef.telemetry.sampling import reset_sampling_for_tests as _reset_sampling
 from undef.telemetry.slo import _rebind_slo_instruments, record_red_metrics, record_use_metrics
 from undef.telemetry.slo import _reset_slo_for_tests as _reset_slo
 from undef.telemetry.tracing.provider import _refresh_otel_tracing, setup_tracing, shutdown_tracing
@@ -56,11 +62,11 @@ def setup_telemetry(config: TelemetryConfig | None = None) -> TelemetryConfig:
             except Exception:
                 _rollback(completed)
                 raise
+            _setup_done = True
             if cfg.slo.enable_red_metrics:
                 record_red_metrics("startup", "INIT", 200, 0.0)
             if cfg.slo.enable_use_metrics:
                 record_use_metrics("startup", 0)
-            _setup_done = True
     return cfg
 
 
@@ -76,6 +82,12 @@ def _reset_all_for_tests() -> None:
     _reset_tracing()
     _reset_metrics(None)
     _reset_slo()
+    _reset_resilience()
+    _reset_health()
+    _reset_queues()
+    _reset_pii()
+    _reset_cardinality()
+    _reset_sampling()
 
 
 def shutdown_telemetry() -> None:

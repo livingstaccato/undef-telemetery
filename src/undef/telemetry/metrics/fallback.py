@@ -80,6 +80,23 @@ class Gauge:
         finally:
             release(ticket)
 
+    def set(self, value: int, attributes: dict[str, str] | None = None) -> None:
+        if not should_sample("metrics", self.name):
+            return
+        ticket = try_acquire("metrics")
+        if ticket is None:
+            return
+        try:
+            with self._lock:
+                delta = value - self.value
+                self.value = value
+            otel_gauge = self._otel_gauge
+            if otel_gauge is not None:
+                attrs = guard_attributes(attributes or {})
+                otel_gauge.add(delta, attrs)
+        finally:
+            release(ticket)
+
 
 class Histogram:
     def __init__(self, name: str, otel_histogram: Any | None = None) -> None:

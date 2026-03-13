@@ -371,7 +371,7 @@ def test_record_use_metrics_passes_resource_attr() -> None:
     """Verify the resource attribute is correctly passed."""
     with patch("undef.telemetry.slo._lazy_gauge") as mock_g:
         mock_g.return_value = mock_g
-        mock_g.add = lambda *a, **kw: None
+        mock_g.set = lambda *a, **kw: None
         record_use_metrics("memory", 60)
 
         mock_g.assert_called_once_with("resource.utilization.percent", "Resource utilization", "%")
@@ -382,22 +382,22 @@ def test_record_use_metrics_gauge_args() -> None:
     with patch("undef.telemetry.slo.gauge") as mock_gauge:
         mock_gauge.return_value = mock_gauge
         mock_gauge.name = "resource.utilization.percent"
-        mock_gauge.add = lambda *a, **kw: None
+        mock_gauge.set = lambda *a, **kw: None
         record_use_metrics("disk", 50)
 
         mock_gauge.assert_called_once_with("resource.utilization.percent", "Resource utilization", "%")
 
 
 def test_record_use_metrics_resource_attribute_value() -> None:
-    """Verify the exact attribute dict passed to gauge.add."""
+    """Verify the exact attribute dict passed to gauge.set."""
     with patch("undef.telemetry.slo._lazy_gauge") as mock_g:
         captured: list[tuple[int, dict[str, str]]] = []
 
-        def fake_add(amount: int, attrs: dict[str, str] | None = None) -> None:
-            captured.append((amount, attrs or {}))
+        def fake_set(value: int, attrs: dict[str, str] | None = None) -> None:
+            captured.append((value, attrs or {}))
 
         mock_g.return_value = mock_g
-        mock_g.add = fake_add
+        mock_g.set = fake_set
         record_use_metrics("network", 30)
 
         assert len(captured) == 1

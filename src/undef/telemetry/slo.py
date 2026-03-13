@@ -56,7 +56,7 @@ def record_red_metrics(route: str, method: str, status_code: int, duration_ms: f
 
 
 def record_use_metrics(resource: str, utilization_percent: int) -> None:
-    _lazy_gauge("resource.utilization.percent", "Resource utilization", "%").add(
+    _lazy_gauge("resource.utilization.percent", "Resource utilization", "%").set(
         utilization_percent, {"resource": resource}
     )
 
