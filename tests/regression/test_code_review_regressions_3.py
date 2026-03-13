@@ -65,11 +65,14 @@ class TestCircuitBreaker:
             assert r_mod._consecutive_timeouts["logs"] == 0
 
     def test_circuit_breaker_raises_when_fail_closed(self) -> None:
+        import time
+
         from undef.telemetry import resilience as r_mod
 
         set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=False, timeout_seconds=1.0))
         with r_mod._lock:
             r_mod._consecutive_timeouts["logs"] = 3
+            r_mod._circuit_tripped_at["logs"] = time.monotonic()
         with pytest.raises(TimeoutError, match="circuit breaker open"):
             run_with_resilience("logs", lambda: "bad")
 
@@ -92,6 +95,54 @@ class TestCircuitBreaker:
         run_with_resilience("logs", lambda: _time.sleep(1.0))
         with r_mod._lock:
             assert r_mod._consecutive_timeouts["logs"] == 1
+
+    def test_half_open_allows_probe_after_cooldown(self) -> None:
+        """After cooldown expires, circuit breaker enters half-open and lets one call through."""
+        import time
+
+        from undef.telemetry import resilience as r_mod
+
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.0))
+        with r_mod._lock:
+            r_mod._consecutive_timeouts["logs"] = 3
+            # Trip time far enough in the past to exceed cooldown
+            r_mod._circuit_tripped_at["logs"] = time.monotonic() - r_mod._CIRCUIT_BREAKER_COOLDOWN - 1.0
+        # Should let the probe through (half-open) and succeed → reset breaker
+        assert run_with_resilience("logs", lambda: "recovered") == "recovered"
+        with r_mod._lock:
+            assert r_mod._consecutive_timeouts["logs"] == 0
+
+    def test_half_open_probe_failure_re_trips_breaker(self) -> None:
+        """If the half-open probe times out, the breaker re-trips with a fresh timestamp."""
+        import time as _time
+
+        from undef.telemetry import resilience as r_mod
+
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.01))
+        with r_mod._lock:
+            r_mod._consecutive_timeouts["logs"] = 3
+            r_mod._circuit_tripped_at["logs"] = _time.monotonic() - r_mod._CIRCUIT_BREAKER_COOLDOWN - 1.0
+        # Probe should be allowed through but will timeout → re-trip
+        assert run_with_resilience("logs", lambda: _time.sleep(1.0)) is None
+        with r_mod._lock:
+            assert r_mod._consecutive_timeouts["logs"] >= r_mod._CIRCUIT_BREAKER_THRESHOLD
+            # Trip timestamp should be recent (re-armed)
+            assert _time.monotonic() - r_mod._circuit_tripped_at["logs"] < 5.0
+
+    def test_circuit_breaker_stays_closed_within_cooldown(self) -> None:
+        """Breaker stays open (rejecting calls) within the cooldown window."""
+        import time
+
+        from undef.telemetry import resilience as r_mod
+
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=1.0))
+        call_count = {"n": 0}
+        with r_mod._lock:
+            r_mod._consecutive_timeouts["logs"] = 3
+            r_mod._circuit_tripped_at["logs"] = time.monotonic()  # just tripped
+        result = run_with_resilience("logs", lambda: call_count.update(n=call_count["n"] + 1))
+        assert result is None
+        assert call_count["n"] == 0
 
 
 # ── Issue #18: shutdown_telemetry resets runtime policies ──────────────

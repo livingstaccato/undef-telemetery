@@ -44,6 +44,7 @@ class ExporterPolicy:
 
 
 _CIRCUIT_BREAKER_THRESHOLD = 3  # consecutive timeouts before tripping
+_CIRCUIT_BREAKER_COOLDOWN = 30.0  # seconds before allowing a half-open probe
 
 _lock = threading.Lock()
 _policies: dict[Signal, ExporterPolicy] = {
@@ -52,6 +53,7 @@ _policies: dict[Signal, ExporterPolicy] = {
     "metrics": ExporterPolicy(),
 }
 _consecutive_timeouts: dict[Signal, int] = {"logs": 0, "traces": 0, "metrics": 0}
+_circuit_tripped_at: dict[Signal, float] = {"logs": 0.0, "traces": 0.0, "metrics": 0.0}
 _async_warned_signals: set[Signal] = set()
 _timeout_executor: concurrent.futures.ThreadPoolExecutor | None = None
 
@@ -95,10 +97,13 @@ def run_with_resilience(signal: Signal, operation: Callable[[], T]) -> T | None:
     if timeout_seconds > 0:
         with _lock:
             if _consecutive_timeouts[sig] >= _CIRCUIT_BREAKER_THRESHOLD:
-                record_export_failure(sig, TimeoutError("circuit breaker open"))  # pragma: no mutate
-                if policy.fail_open:
-                    return None
-                raise TimeoutError("circuit breaker open: too many consecutive timeouts")
+                elapsed = time.monotonic() - _circuit_tripped_at[sig]
+                if elapsed < _CIRCUIT_BREAKER_COOLDOWN:
+                    record_export_failure(sig, TimeoutError("circuit breaker open"))  # pragma: no mutate
+                    if policy.fail_open:
+                        return None
+                    raise TimeoutError("circuit breaker open: too many consecutive timeouts")
+                # Half-open: cooldown expired, allow one probe attempt through
     if _is_running_in_event_loop() and (policy.retries > 0 or policy.backoff_seconds > 0):  # pragma: no mutate
         increment_async_blocking_risk(sig)  # pragma: no mutate
         _warn_async_risk(sig, policy)  # pragma: no mutate
@@ -120,6 +125,8 @@ def run_with_resilience(signal: Signal, operation: Callable[[], T]) -> T | None:
             record_export_failure(sig, exc)  # pragma: no mutate
             with _lock:
                 _consecutive_timeouts[sig] += 1
+                if _consecutive_timeouts[sig] >= _CIRCUIT_BREAKER_THRESHOLD:
+                    _circuit_tripped_at[sig] = time.monotonic()
             if attempt < attempts - 1:
                 increment_retries(sig)
                 if backoff_seconds > 0:  # pragma: no mutate
@@ -168,6 +175,7 @@ def reset_resilience_for_tests() -> None:
         for signal in ("logs", "traces", "metrics"):
             _policies[signal] = ExporterPolicy()
             _consecutive_timeouts[signal] = 0
+            _circuit_tripped_at[signal] = 0.0
         _async_warned_signals.clear()
         if _timeout_executor is not None:
             _timeout_executor.shutdown(wait=False)
