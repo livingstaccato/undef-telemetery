@@ -340,6 +340,23 @@ class TestOTelDebugLogging:
         assert "no-op fallback" in caplog.text
 
 
+# ── OTel SDK log noise suppression ─────────────────────────────────
+
+
+class TestOTelSdkLogSuppression:
+    def test_setup_quiets_otel_exporter_logger(self) -> None:
+        from undef.telemetry.setup import _quiet_otel_sdk_loggers
+
+        _quiet_otel_sdk_loggers()
+        assert logging.getLogger("opentelemetry.exporter").level == logging.CRITICAL
+
+    def test_setup_quiets_otel_sdk_logger(self) -> None:
+        from undef.telemetry.setup import _quiet_otel_sdk_loggers
+
+        _quiet_otel_sdk_loggers()
+        assert logging.getLogger("opentelemetry.sdk").level == logging.CRITICAL
+
+
 # ── Backwards compatibility ─────────────────────────────────────────
 
 

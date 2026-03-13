@@ -51,11 +51,11 @@ async def test_middleware_cleans_context_on_cancellation() -> None:
     }
 
     task = asyncio.create_task(middleware(scope, _noop_receive, _noop_send))
-    await app_entered.wait()
+    await asyncio.wait_for(app_entered.wait(), timeout=5)
     task.cancel()
 
     with pytest.raises(asyncio.CancelledError):
-        await task
+        await asyncio.wait_for(task, timeout=5)
 
     # Context must be cleared even after cancellation
     assert get_context() == {}
@@ -88,11 +88,11 @@ async def test_middleware_cleans_context_on_cancellation_with_auto_slo(
     }
 
     task = asyncio.create_task(middleware(scope, _noop_receive, _noop_send))
-    await app_entered.wait()
+    await asyncio.wait_for(app_entered.wait(), timeout=5)
     task.cancel()
 
     with pytest.raises(asyncio.CancelledError):
-        await task
+        await asyncio.wait_for(task, timeout=5)
 
     assert get_context() == {}
     # auto_slo metrics recorded in finally block before re-raising
@@ -116,11 +116,11 @@ async def test_middleware_websocket_cancellation_cleans_context() -> None:
     }
 
     task = asyncio.create_task(middleware(scope, _noop_receive, _noop_send))
-    await app_entered.wait()
+    await asyncio.wait_for(app_entered.wait(), timeout=5)
     task.cancel()
 
     with pytest.raises(asyncio.CancelledError):
-        await task
+        await asyncio.wait_for(task, timeout=5)
 
     assert get_context() == {}
     assert get_trace_context() == {"trace_id": None, "span_id": None}

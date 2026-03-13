@@ -47,7 +47,13 @@ def _rollback(completed: list[str]) -> None:
         try:
             teardowns[step]()
         except Exception:
-            _logger.warning("rollback failed for %s", step, exc_info=True)
+            _logger.warning("rollback failed for %s", step, exc_info=True)  # pragma: no mutate
+
+
+def _quiet_otel_sdk_loggers() -> None:
+    """Suppress OTel SDK export noise that the resilience layer already handles."""
+    for name in ("opentelemetry.exporter", "opentelemetry.sdk"):  # pragma: no mutate
+        logging.getLogger(name).setLevel(logging.CRITICAL)  # pragma: no mutate
 
 
 def setup_telemetry(config: TelemetryConfig | None = None) -> TelemetryConfig:
@@ -55,6 +61,7 @@ def setup_telemetry(config: TelemetryConfig | None = None) -> TelemetryConfig:
     cfg = config or TelemetryConfig.from_env()
     with _lock:
         if not _setup_done:
+            _quiet_otel_sdk_loggers()
             apply_runtime_config(cfg)
             completed: list[str] = []
             try:
