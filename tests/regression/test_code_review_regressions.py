@@ -84,9 +84,7 @@ class TestSetupDoneOrdering:
 
         monkeypatch.setattr("undef.telemetry.setup.record_red_metrics", _boom_red)
         with pytest.raises(RuntimeError, match="SLO boom"):
-            setup_telemetry(
-                TelemetryConfig.from_env({"UNDEF_SLO_ENABLE_RED_METRICS": "true"})
-            )
+            setup_telemetry(TelemetryConfig.from_env({"UNDEF_SLO_ENABLE_RED_METRICS": "true"}))
         # _setup_done remains True — no provider double-init risk
         assert setup_mod._setup_done is True
 
@@ -301,9 +299,7 @@ class TestEnvVarParsingErrors:
 class TestResilienceRetryPathCoverage:
     def test_retry_records_failure_and_retries(self) -> None:
         """The except branch in run_with_resilience must be exercisable."""
-        set_exporter_policy(
-            "logs", ExporterPolicy(retries=1, backoff_seconds=0.0, fail_open=True, timeout_seconds=0.0)
-        )
+        set_exporter_policy("logs", ExporterPolicy(retries=1, backoff_seconds=0.0, fail_open=True, timeout_seconds=0.0))
         calls = {"count": 0}
 
         def _failing_op() -> str:
@@ -318,9 +314,7 @@ class TestResilienceRetryPathCoverage:
         assert snap.retries_logs == 1
 
     def test_retry_path_raises_on_fail_closed(self) -> None:
-        set_exporter_policy(
-            "logs", ExporterPolicy(retries=0, fail_open=False, timeout_seconds=0.0)
-        )
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=False, timeout_seconds=0.0))
 
         def _failing_op() -> str:
             raise RuntimeError("boom")
@@ -365,26 +359,20 @@ class TestTraceparentNormalization:
     def test_uppercase_trace_id_normalized(self) -> None:
         from undef.telemetry.propagation import _parse_traceparent
 
-        trace_id, span_id = _parse_traceparent(
-            "00-0AF7651916CD43DD8448EB211C80319C-B7AD6B7169203331-01"
-        )
+        trace_id, span_id = _parse_traceparent("00-0AF7651916CD43DD8448EB211C80319C-B7AD6B7169203331-01")
         assert trace_id == "0af7651916cd43dd8448eb211c80319c"
         assert span_id == "b7ad6b7169203331"
 
     def test_mixed_case_trace_id_normalized(self) -> None:
         from undef.telemetry.propagation import _parse_traceparent
 
-        trace_id, span_id = _parse_traceparent(
-            "00-0aF7651916cD43dD8448eB211c80319C-b7aD6B7169203331-01"
-        )
+        trace_id, span_id = _parse_traceparent("00-0aF7651916cD43dD8448eB211c80319C-b7aD6B7169203331-01")
         assert trace_id == "0af7651916cd43dd8448eb211c80319c"
         assert span_id == "b7ad6b7169203331"
 
     def test_lowercase_unchanged(self) -> None:
         from undef.telemetry.propagation import _parse_traceparent
 
-        trace_id, span_id = _parse_traceparent(
-            "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
-        )
+        trace_id, span_id = _parse_traceparent("00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
         assert trace_id == "0af7651916cd43dd8448eb211c80319c"
         assert span_id == "b7ad6b7169203331"

@@ -7,7 +7,12 @@
 
 from __future__ import annotations
 
-import contextlib
+__all__ = [
+    "setup_telemetry",
+    "shutdown_telemetry",
+]
+
+import logging
 import threading
 
 from undef.telemetry.backpressure import reset_queues_for_tests as _reset_queues
@@ -27,6 +32,7 @@ from undef.telemetry.slo import _reset_slo_for_tests as _reset_slo
 from undef.telemetry.tracing.provider import _refresh_otel_tracing, setup_tracing, shutdown_tracing
 from undef.telemetry.tracing.provider import _reset_tracing_for_tests as _reset_tracing
 
+_logger = logging.getLogger(__name__)
 _lock = threading.Lock()
 _setup_done = False
 
@@ -38,8 +44,10 @@ def _rollback(completed: list[str]) -> None:
         "setup_metrics": shutdown_metrics,
     }
     for step in reversed(completed):
-        with contextlib.suppress(Exception):
+        try:
             teardowns[step]()
+        except Exception:
+            _logger.warning("rollback failed for %s", step, exc_info=True)
 
 
 def setup_telemetry(config: TelemetryConfig | None = None) -> TelemetryConfig:

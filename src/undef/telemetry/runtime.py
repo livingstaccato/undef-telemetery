@@ -12,6 +12,13 @@ Use ``reconfigure_telemetry()`` for a full shutdown+setup cycle when providers m
 
 from __future__ import annotations
 
+__all__ = [
+    "get_runtime_config",
+    "reconfigure_telemetry",
+    "reload_runtime_from_env",
+    "update_runtime_config",
+]
+
 import copy
 import threading
 

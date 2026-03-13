@@ -219,19 +219,23 @@ class TestRequiredKeysEdgeCases:
 
 class TestOtlpEndpointPriority:
     def test_specific_overrides_general(self) -> None:
-        cfg = TelemetryConfig.from_env({
-            "OTEL_EXPORTER_OTLP_ENDPOINT": "http://general",
-            "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "http://logs-specific",
-        })
+        cfg = TelemetryConfig.from_env(
+            {
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "http://general",
+                "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "http://logs-specific",
+            }
+        )
         assert cfg.logging.otlp_endpoint == "http://logs-specific"
         assert cfg.tracing.otlp_endpoint == "http://general"
         assert cfg.metrics.otlp_endpoint == "http://general"
 
     def test_specific_headers_override_general(self) -> None:
-        cfg = TelemetryConfig.from_env({
-            "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Basic%20general",
-            "OTEL_EXPORTER_OTLP_TRACES_HEADERS": "Authorization=Basic%20traces",
-        })
+        cfg = TelemetryConfig.from_env(
+            {
+                "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Basic%20general",
+                "OTEL_EXPORTER_OTLP_TRACES_HEADERS": "Authorization=Basic%20traces",
+            }
+        )
         assert cfg.tracing.otlp_headers == {"Authorization": "Basic traces"}
         assert cfg.logging.otlp_headers == {"Authorization": "Basic general"}
 
@@ -247,21 +251,25 @@ class TestOtlpEndpointPriority:
 
 class TestCrossFieldInteractions:
     def test_all_sampling_rates_at_different_values(self) -> None:
-        cfg = TelemetryConfig.from_env({
-            "UNDEF_SAMPLING_LOGS_RATE": "0.0",
-            "UNDEF_SAMPLING_TRACES_RATE": "1.0",
-            "UNDEF_SAMPLING_METRICS_RATE": "0.5",
-        })
+        cfg = TelemetryConfig.from_env(
+            {
+                "UNDEF_SAMPLING_LOGS_RATE": "0.0",
+                "UNDEF_SAMPLING_TRACES_RATE": "1.0",
+                "UNDEF_SAMPLING_METRICS_RATE": "0.5",
+            }
+        )
         assert cfg.sampling.logs_rate == 0.0
         assert cfg.sampling.traces_rate == 1.0
         assert cfg.sampling.metrics_rate == 0.5
 
     def test_all_backpressure_at_different_sizes(self) -> None:
-        cfg = TelemetryConfig.from_env({
-            "UNDEF_BACKPRESSURE_LOGS_MAXSIZE": "10",
-            "UNDEF_BACKPRESSURE_TRACES_MAXSIZE": "20",
-            "UNDEF_BACKPRESSURE_METRICS_MAXSIZE": "30",
-        })
+        cfg = TelemetryConfig.from_env(
+            {
+                "UNDEF_BACKPRESSURE_LOGS_MAXSIZE": "10",
+                "UNDEF_BACKPRESSURE_TRACES_MAXSIZE": "20",
+                "UNDEF_BACKPRESSURE_METRICS_MAXSIZE": "30",
+            }
+        )
         assert cfg.backpressure.logs_maxsize == 10
         assert cfg.backpressure.traces_maxsize == 20
         assert cfg.backpressure.metrics_maxsize == 30
@@ -275,34 +283,40 @@ class TestCrossFieldInteractions:
         assert epc.logs_allow_blocking_in_event_loop is False
 
     def test_exporter_all_fail_closed_no_retries(self) -> None:
-        cfg = TelemetryConfig.from_env({
-            "UNDEF_EXPORTER_LOGS_FAIL_OPEN": "false",
-            "UNDEF_EXPORTER_TRACES_FAIL_OPEN": "false",
-            "UNDEF_EXPORTER_METRICS_FAIL_OPEN": "false",
-            "UNDEF_EXPORTER_LOGS_RETRIES": "0",
-            "UNDEF_EXPORTER_TRACES_RETRIES": "0",
-            "UNDEF_EXPORTER_METRICS_RETRIES": "0",
-        })
+        cfg = TelemetryConfig.from_env(
+            {
+                "UNDEF_EXPORTER_LOGS_FAIL_OPEN": "false",
+                "UNDEF_EXPORTER_TRACES_FAIL_OPEN": "false",
+                "UNDEF_EXPORTER_METRICS_FAIL_OPEN": "false",
+                "UNDEF_EXPORTER_LOGS_RETRIES": "0",
+                "UNDEF_EXPORTER_TRACES_RETRIES": "0",
+                "UNDEF_EXPORTER_METRICS_RETRIES": "0",
+            }
+        )
         assert cfg.exporter.logs_fail_open is False
         assert cfg.exporter.traces_fail_open is False
         assert cfg.exporter.metrics_fail_open is False
 
     def test_exporter_custom_timeouts(self) -> None:
-        cfg = TelemetryConfig.from_env({
-            "UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS": "0.1",
-            "UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS": "30.0",
-            "UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS": "0.0",
-        })
+        cfg = TelemetryConfig.from_env(
+            {
+                "UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS": "0.1",
+                "UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS": "30.0",
+                "UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS": "0.0",
+            }
+        )
         assert cfg.exporter.logs_timeout_seconds == pytest.approx(0.1)
         assert cfg.exporter.traces_timeout_seconds == 30.0
         assert cfg.exporter.metrics_timeout_seconds == 0.0
 
     def test_slo_all_enabled(self) -> None:
-        cfg = TelemetryConfig.from_env({
-            "UNDEF_SLO_ENABLE_RED_METRICS": "true",
-            "UNDEF_SLO_ENABLE_USE_METRICS": "true",
-            "UNDEF_SLO_INCLUDE_ERROR_TAXONOMY": "false",
-        })
+        cfg = TelemetryConfig.from_env(
+            {
+                "UNDEF_SLO_ENABLE_RED_METRICS": "true",
+                "UNDEF_SLO_ENABLE_USE_METRICS": "true",
+                "UNDEF_SLO_INCLUDE_ERROR_TAXONOMY": "false",
+            }
+        )
         assert cfg.slo.enable_red_metrics is True
         assert cfg.slo.enable_use_metrics is True
         assert cfg.slo.include_error_taxonomy is False

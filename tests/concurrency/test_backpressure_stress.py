@@ -179,9 +179,7 @@ class TestBackpressureSaturation:
 
         # All tokens are unique across all signals (global counter)
         all_tokens = (
-            [t.token for t in logs_tickets]
-            + [t.token for t in traces_tickets]
-            + [t.token for t in metrics_tickets]
+            [t.token for t in logs_tickets] + [t.token for t in traces_tickets] + [t.token for t in metrics_tickets]
         )
         assert len(all_tokens) == len(set(all_tokens)), "Tokens must be globally unique"
 

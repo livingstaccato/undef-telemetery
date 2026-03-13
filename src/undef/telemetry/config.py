@@ -7,10 +7,27 @@
 
 from __future__ import annotations
 
+__all__ = [
+    "BackpressureConfig",
+    "ExporterPolicyConfig",
+    "LoggingConfig",
+    "MetricsConfig",
+    "SLOConfig",
+    "SamplingConfig",
+    "SchemaConfig",
+    "TelemetryConfig",
+    "TracingConfig",
+]
+
+import logging
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from urllib.parse import unquote
+
+from undef.telemetry.exceptions import ConfigurationError
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -162,24 +179,52 @@ class TelemetryConfig:
             ),
             sampling=SamplingConfig(
                 logs_rate=_parse_env_float(data.get("UNDEF_SAMPLING_LOGS_RATE", "1.0"), "UNDEF_SAMPLING_LOGS_RATE"),
-                traces_rate=_parse_env_float(data.get("UNDEF_SAMPLING_TRACES_RATE", "1.0"), "UNDEF_SAMPLING_TRACES_RATE"),
-                metrics_rate=_parse_env_float(data.get("UNDEF_SAMPLING_METRICS_RATE", "1.0"), "UNDEF_SAMPLING_METRICS_RATE"),
+                traces_rate=_parse_env_float(
+                    data.get("UNDEF_SAMPLING_TRACES_RATE", "1.0"), "UNDEF_SAMPLING_TRACES_RATE"
+                ),
+                metrics_rate=_parse_env_float(
+                    data.get("UNDEF_SAMPLING_METRICS_RATE", "1.0"), "UNDEF_SAMPLING_METRICS_RATE"
+                ),
             ),
             backpressure=BackpressureConfig(
-                logs_maxsize=_parse_env_int(data.get("UNDEF_BACKPRESSURE_LOGS_MAXSIZE", "0"), "UNDEF_BACKPRESSURE_LOGS_MAXSIZE"),
-                traces_maxsize=_parse_env_int(data.get("UNDEF_BACKPRESSURE_TRACES_MAXSIZE", "0"), "UNDEF_BACKPRESSURE_TRACES_MAXSIZE"),
-                metrics_maxsize=_parse_env_int(data.get("UNDEF_BACKPRESSURE_METRICS_MAXSIZE", "0"), "UNDEF_BACKPRESSURE_METRICS_MAXSIZE"),
+                logs_maxsize=_parse_env_int(
+                    data.get("UNDEF_BACKPRESSURE_LOGS_MAXSIZE", "0"), "UNDEF_BACKPRESSURE_LOGS_MAXSIZE"
+                ),
+                traces_maxsize=_parse_env_int(
+                    data.get("UNDEF_BACKPRESSURE_TRACES_MAXSIZE", "0"), "UNDEF_BACKPRESSURE_TRACES_MAXSIZE"
+                ),
+                metrics_maxsize=_parse_env_int(
+                    data.get("UNDEF_BACKPRESSURE_METRICS_MAXSIZE", "0"), "UNDEF_BACKPRESSURE_METRICS_MAXSIZE"
+                ),
             ),
             exporter=ExporterPolicyConfig(
-                logs_retries=_parse_env_int(data.get("UNDEF_EXPORTER_LOGS_RETRIES", "0"), "UNDEF_EXPORTER_LOGS_RETRIES"),
-                traces_retries=_parse_env_int(data.get("UNDEF_EXPORTER_TRACES_RETRIES", "0"), "UNDEF_EXPORTER_TRACES_RETRIES"),
-                metrics_retries=_parse_env_int(data.get("UNDEF_EXPORTER_METRICS_RETRIES", "0"), "UNDEF_EXPORTER_METRICS_RETRIES"),
-                logs_backoff_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_LOGS_BACKOFF_SECONDS", "0.0"), "UNDEF_EXPORTER_LOGS_BACKOFF_SECONDS"),
-                traces_backoff_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_TRACES_BACKOFF_SECONDS", "0.0"), "UNDEF_EXPORTER_TRACES_BACKOFF_SECONDS"),
-                metrics_backoff_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_METRICS_BACKOFF_SECONDS", "0.0"), "UNDEF_EXPORTER_METRICS_BACKOFF_SECONDS"),
-                logs_timeout_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS", "10.0"), "UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS"),
-                traces_timeout_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS", "10.0"), "UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS"),
-                metrics_timeout_seconds=_parse_env_float(data.get("UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS", "10.0"), "UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS"),
+                logs_retries=_parse_env_int(
+                    data.get("UNDEF_EXPORTER_LOGS_RETRIES", "0"), "UNDEF_EXPORTER_LOGS_RETRIES"
+                ),
+                traces_retries=_parse_env_int(
+                    data.get("UNDEF_EXPORTER_TRACES_RETRIES", "0"), "UNDEF_EXPORTER_TRACES_RETRIES"
+                ),
+                metrics_retries=_parse_env_int(
+                    data.get("UNDEF_EXPORTER_METRICS_RETRIES", "0"), "UNDEF_EXPORTER_METRICS_RETRIES"
+                ),
+                logs_backoff_seconds=_parse_env_float(
+                    data.get("UNDEF_EXPORTER_LOGS_BACKOFF_SECONDS", "0.0"), "UNDEF_EXPORTER_LOGS_BACKOFF_SECONDS"
+                ),
+                traces_backoff_seconds=_parse_env_float(
+                    data.get("UNDEF_EXPORTER_TRACES_BACKOFF_SECONDS", "0.0"), "UNDEF_EXPORTER_TRACES_BACKOFF_SECONDS"
+                ),
+                metrics_backoff_seconds=_parse_env_float(
+                    data.get("UNDEF_EXPORTER_METRICS_BACKOFF_SECONDS", "0.0"), "UNDEF_EXPORTER_METRICS_BACKOFF_SECONDS"
+                ),
+                logs_timeout_seconds=_parse_env_float(
+                    data.get("UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS", "10.0"), "UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS"
+                ),
+                traces_timeout_seconds=_parse_env_float(
+                    data.get("UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS", "10.0"), "UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS"
+                ),
+                metrics_timeout_seconds=_parse_env_float(
+                    data.get("UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS", "10.0"), "UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS"
+                ),
                 logs_fail_open=_parse_bool(data.get("UNDEF_EXPORTER_LOGS_FAIL_OPEN"), True),
                 traces_fail_open=_parse_bool(data.get("UNDEF_EXPORTER_TRACES_FAIL_OPEN"), True),
                 metrics_fail_open=_parse_bool(data.get("UNDEF_EXPORTER_METRICS_FAIL_OPEN"), True),
@@ -205,23 +250,23 @@ def _normalize_level(value: str) -> str:
     allowed = {"TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
     normalized = value.upper()
     if normalized not in allowed:
-        raise ValueError(f"invalid log level: {value}")
+        raise ConfigurationError(f"invalid log level: {value}")
     return normalized
 
 
 def _validate_fmt(value: str) -> None:
     if value not in {"console", "json"}:
-        raise ValueError(f"invalid log format: {value}")
+        raise ConfigurationError(f"invalid log format: {value}")
 
 
 def _validate_rate(value: float, message: str) -> None:
     if not 0.0 <= value <= 1.0:
-        raise ValueError(message)
+        raise ConfigurationError(message)
 
 
 def _validate_non_negative(value: int, message: str) -> None:
     if value < 0:
-        raise ValueError(message)
+        raise ConfigurationError(message)
 
 
 def _parse_bool(value: str | None, default: bool) -> bool:
@@ -234,14 +279,14 @@ def _parse_env_float(value: str, field: str) -> float:
     try:
         return float(value)
     except ValueError:
-        raise ValueError(f"invalid float for {field}: {value!r}") from None
+        raise ConfigurationError(f"invalid float for {field}: {value!r}") from None
 
 
 def _parse_env_int(value: str, field: str) -> int:
     try:
         return int(value)
     except ValueError:
-        raise ValueError(f"invalid integer for {field}: {value!r}") from None
+        raise ConfigurationError(f"invalid integer for {field}: {value!r}") from None
 
 
 def _parse_otlp_headers(value: str | None) -> dict[str, str]:
@@ -250,6 +295,9 @@ def _parse_otlp_headers(value: str | None) -> dict[str, str]:
     headers: dict[str, str] = {}
     for pair in value.split(","):
         if "=" not in pair:
+            stripped = pair.strip()
+            if stripped:
+                _logger.warning("malformed OTLP header pair ignored (expected key=value): %r", stripped)
             continue
         key, raw = pair.split("=", 1)
         key = key.strip()

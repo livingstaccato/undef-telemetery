@@ -7,6 +7,13 @@
 
 from __future__ import annotations
 
+__all__ = [
+    "ExporterPolicy",
+    "get_exporter_policy",
+    "run_with_resilience",
+    "set_exporter_policy",
+]
+
 import asyncio
 import concurrent.futures
 import threading

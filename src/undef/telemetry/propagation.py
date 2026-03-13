@@ -7,6 +7,13 @@
 
 from __future__ import annotations
 
+__all__ = [
+    "PropagationContext",
+    "bind_propagation_context",
+    "clear_propagation_context",
+    "extract_w3c_context",
+]
+
 import contextvars
 from dataclasses import dataclass
 from typing import Any

@@ -7,6 +7,12 @@
 
 from __future__ import annotations
 
+__all__ = [
+    "classify_error",
+    "record_red_metrics",
+    "record_use_metrics",
+]
+
 import threading
 
 from undef.telemetry.metrics import counter, gauge, histogram

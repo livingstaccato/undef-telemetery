@@ -132,11 +132,11 @@ def test_real_otel_span_records_exception() -> None:
     try:
         tracer = otel_trace.get_tracer("test.exception")
         with pytest.raises(ValueError, match="test error"), tracer.start_as_current_span("error-op") as span:
-                span.record_exception(ValueError("test error"))
-                span.set_status(otel_trace.StatusCode.ERROR, "test error")
-                # Verify error status was set on the span
-                assert span.status.status_code == otel_trace.StatusCode.ERROR
-                raise ValueError("test error")
+            span.record_exception(ValueError("test error"))
+            span.set_status(otel_trace.StatusCode.ERROR, "test error")
+            # Verify error status was set on the span
+            assert span.status.status_code == otel_trace.StatusCode.ERROR
+            raise ValueError("test error")
     finally:
         provider.shutdown()
         otel_trace.set_tracer_provider(otel_trace.NoOpTracerProvider())

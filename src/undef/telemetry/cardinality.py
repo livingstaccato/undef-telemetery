@@ -7,6 +7,15 @@
 
 from __future__ import annotations
 
+__all__ = [
+    "OVERFLOW_VALUE",
+    "CardinalityLimit",
+    "clear_cardinality_limits",
+    "get_cardinality_limits",
+    "guard_attributes",
+    "register_cardinality_limit",
+]
+
 import threading
 import time
 from dataclasses import dataclass

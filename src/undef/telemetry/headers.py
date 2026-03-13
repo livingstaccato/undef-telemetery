@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+__all__ = ["get_header"]
+
 from typing import Any
 
 

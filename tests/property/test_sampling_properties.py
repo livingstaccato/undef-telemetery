@@ -281,9 +281,7 @@ def test_valid_traceparent_always_parses(trace_id: str, span_id: str, flags: str
     flags=st.from_regex(r"[0-9a-f]{2}", fullmatch=True),
 )
 @settings(max_examples=100)
-def test_traceparent_with_various_versions_parses(
-    version: str, trace_id: str, span_id: str, flags: str
-) -> None:
+def test_traceparent_with_various_versions_parses(version: str, trace_id: str, span_id: str, flags: str) -> None:
     from undef.telemetry.propagation import _parse_traceparent
 
     value = f"{version}-{trace_id}-{span_id}-{flags}"

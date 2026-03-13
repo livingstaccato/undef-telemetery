@@ -7,6 +7,18 @@
 
 from __future__ import annotations
 
+__all__ = [
+    "HealthSnapshot",
+    "get_health_snapshot",
+    "increment_async_blocking_risk",
+    "increment_dropped",
+    "increment_exemplar_unsupported",
+    "increment_retries",
+    "record_export_failure",
+    "record_export_success",
+    "set_queue_depth",
+]
+
 import threading
 import time
 from dataclasses import dataclass

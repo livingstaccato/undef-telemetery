@@ -7,6 +7,15 @@
 
 from __future__ import annotations
 
+__all__ = [
+    "MaskMode",
+    "PIIRule",
+    "get_pii_rules",
+    "register_pii_rule",
+    "replace_pii_rules",
+    "sanitize_payload",
+]
+
 import copy
 import hashlib
 import threading
