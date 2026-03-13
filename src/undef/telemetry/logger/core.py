@@ -155,7 +155,7 @@ def configure_logging(config: TelemetryConfig) -> None:
         if config.logging.fmt == "json":
             renderer = structlog.processors.JSONRenderer()
         else:
-            renderer = structlog.dev.ConsoleRenderer(colors=False)
+            renderer = structlog.dev.ConsoleRenderer(colors=sys.stderr.isatty())
 
         processors.append(renderer)
 
