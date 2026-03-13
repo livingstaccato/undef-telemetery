@@ -19,7 +19,7 @@ export UNDEF_TRACE_ENABLED=true
 
 Behavior:
 
-- Enforces `domain.action.status` event names.
+- Enforces 3-5 segment event names.
 - Enforces required keys on events.
 - Keeps full tracing and metrics signal volume.
 

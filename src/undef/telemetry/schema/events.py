@@ -9,20 +9,27 @@ from __future__ import annotations
 
 import re
 
-_EVENT_RE = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
-_SEGMENT_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+_SEG = r"[a-z][a-z0-9_]*"
+_EVENT_RE = re.compile(rf"^{_SEG}(?:\.{_SEG}){{2,4}}$")
+_SEGMENT_RE = re.compile(rf"^{_SEG}$")
+_MIN_SEGMENTS = 3
+_MAX_SEGMENTS = 5
 
 
 class EventSchemaError(ValueError):
     """Raised when an event violates schema policy."""
 
 
-def event_name(domain: str, action: str, status: str) -> str:
-    """Build a strict event name from validated segments."""
-    for label, value in (("domain", domain), ("action", action), ("status", status)):
+def event_name(*segments: str) -> str:
+    """Build a strict event name from 3-5 validated segments."""
+    if not (_MIN_SEGMENTS <= len(segments) <= _MAX_SEGMENTS):
+        raise EventSchemaError(
+            f"expected {_MIN_SEGMENTS}-{_MAX_SEGMENTS} segments, got {len(segments)}"
+        )
+    for i, value in enumerate(segments):
         if not _SEGMENT_RE.match(value):
-            raise EventSchemaError(f"invalid event segment: {label}={value}")
-    return f"{domain}.{action}.{status}"
+            raise EventSchemaError(f"invalid event segment: segment[{i}]={value}")
+    return ".".join(segments)
 
 
 def validate_event_name(name: str, strict_event_name: bool) -> None:
