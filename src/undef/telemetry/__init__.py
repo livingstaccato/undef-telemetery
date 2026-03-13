@@ -21,7 +21,12 @@ from undef.telemetry.metrics import counter, gauge, get_meter, histogram
 from undef.telemetry.pii import PIIRule, get_pii_rules, register_pii_rule, replace_pii_rules
 from undef.telemetry.propagation import bind_propagation_context, extract_w3c_context
 from undef.telemetry.resilience import ExporterPolicy, get_exporter_policy, set_exporter_policy
-from undef.telemetry.runtime import get_runtime_config, reload_runtime_from_env, update_runtime_config
+from undef.telemetry.runtime import (
+    get_runtime_config,
+    reconfigure_telemetry,
+    reload_runtime_from_env,
+    update_runtime_config,
+)
 from undef.telemetry.sampling import SamplingPolicy, get_sampling_policy, set_sampling_policy, should_sample
 from undef.telemetry.schema.events import event_name
 from undef.telemetry.setup import setup_telemetry, shutdown_telemetry
@@ -65,6 +70,7 @@ __all__ = [
     "get_tracer",
     "histogram",
     "logger",
+    "reconfigure_telemetry",
     "record_red_metrics",
     "record_use_metrics",
     "register_cardinality_limit",

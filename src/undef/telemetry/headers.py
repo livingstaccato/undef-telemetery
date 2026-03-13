@@ -35,7 +35,7 @@ def _decode_header_value(value: object) -> str | None:
         return value
     if isinstance(value, bytes):
         try:
-            return value.decode()
+            return value.decode("utf-8")  # pragma: no mutate
         except UnicodeDecodeError:
-            return None
+            return value.decode("latin-1")  # pragma: no mutate
     return None

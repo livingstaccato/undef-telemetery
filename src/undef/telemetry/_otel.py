@@ -98,6 +98,33 @@ def load_otel_logs_components() -> tuple[Any, Any, Any, Any, Any] | None:
         return None
 
 
+def attach_w3c_context(traceparent: str, tracestate: str | None) -> object | None:
+    """Extract W3C headers into OTEL context and attach. Returns token or None."""
+    try:
+        propagator_mod = _import_module("opentelemetry.trace.propagation.tracecontext")
+        context_mod = _import_module("opentelemetry.context")
+    except ImportError:
+        return None
+    carrier: dict[str, str] = {"traceparent": traceparent}
+    if tracestate is not None:
+        carrier["tracestate"] = tracestate
+    propagator = propagator_mod.TraceContextTextMapPropagator()
+    ctx = propagator.extract(carrier=carrier)
+    token: object = context_mod.attach(ctx)
+    return token
+
+
+def detach_w3c_context(token: object | None) -> None:
+    """Detach a previously attached OTEL context token."""
+    if token is None:
+        return
+    try:
+        context_mod = _import_module("opentelemetry.context")
+    except ImportError:
+        return
+    context_mod.detach(token)
+
+
 def load_instrumentation_logging_handler() -> InstrumentationLoggingHandlerFactory | None:
     try:
         handler_mod = _import_module("opentelemetry.instrumentation.logging.handler")

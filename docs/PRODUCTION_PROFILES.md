@@ -74,10 +74,20 @@ export OPENOBSERVE_PASSWORD=password
 
 ## Runtime Updates
 
-If your process supports runtime policy updates, treat profile changes as an atomic policy swap:
+Profile changes involve two mechanisms with different scopes:
 
-1. Update sampling and resilience settings first.
-2. Then tighten schema settings (`strict_event_name`, `strict_schema`).
+**Hot-reconfigurable** (no restart, via `update_runtime_config()`):
+sampling policies, backpressure queue limits, exporter retry/timeout policies.
+
+**Requires restart** (via `reconfigure_telemetry()`):
+log handlers, schema strictness, tracer/meter providers, OTLP endpoints.
+
+Recommended procedure:
+
+1. Call `update_runtime_config()` to adjust sampling and resilience settings.
+2. If schema/provider changes are needed, call `reconfigure_telemetry()`.
+   Note: this performs a full shutdown+setup cycle; events may be dropped
+   during the brief restart window.
 3. Monitor health snapshot counters (drops, retries, export failures).
 
 ## Async Exporter Safety

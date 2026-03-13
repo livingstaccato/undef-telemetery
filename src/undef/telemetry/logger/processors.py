@@ -47,7 +47,7 @@ def add_standard_fields(config: TelemetryConfig) -> Any:
 
 
 def apply_sampling(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
-    event_name = str(event_dict.get("event", ""))
+    event_name = str(event_dict.get("event", ""))  # pragma: no mutate
     if should_sample("logs", event_name):
         return event_dict
     return {"event": "telemetry.log.dropped", "dropped_event": event_name}

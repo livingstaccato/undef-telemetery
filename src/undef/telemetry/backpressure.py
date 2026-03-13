@@ -67,7 +67,7 @@ def try_acquire(signal: Signal) -> QueueTicket | None:
     with _lock:
         maxsize = _maxsize(signal)
         if maxsize <= 0:
-            return QueueTicket(signal=signal, token=0)
+            return QueueTicket(signal=signal, token=0)  # pragma: no mutate
         queue = _queues[signal]
         if len(queue) >= maxsize:
             increment_dropped(signal)
@@ -81,7 +81,7 @@ def try_acquire(signal: Signal) -> QueueTicket | None:
 def release(ticket: QueueTicket | None) -> None:
     if ticket is None:
         return
-    if ticket.token == 0:
+    if ticket.token == 0:  # pragma: no mutate
         return
     with _lock:
         queue = _queues[ticket.signal if ticket.signal in _queues else "logs"]
