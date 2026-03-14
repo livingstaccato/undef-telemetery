@@ -67,10 +67,10 @@ async def test_warn_async_risk_allow_blocking_message_contains_signal() -> None:
 
 
 @pytest.mark.asyncio
-async def test_warn_async_risk_unknown_signal_falls_back_to_logs() -> None:
-    """Kill the `in` -> `not in` mutant and the fallback 'logs' mutant."""
+async def test_warn_async_risk_uses_signal_name_in_warning() -> None:
+    """Warn message includes the actual signal name (no remapping to 'logs')."""
     policy = ExporterPolicy(retries=1, backoff_seconds=0.1, allow_blocking_in_event_loop=False)
-    with pytest.warns(RuntimeWarning, match=r"resilience policy for logs"):
+    with pytest.warns(RuntimeWarning, match=r"resilience policy for unknown_signal"):
         _warn_async_risk("unknown_signal", policy)
 
 

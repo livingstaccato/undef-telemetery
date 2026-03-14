@@ -255,3 +255,104 @@ def test_setup_telemetry_completed_list_has_correct_keys(
     assert "logging" in shutdown_calls
     assert "tracing" in shutdown_calls
     assert "metrics" in shutdown_calls
+
+
+# ── setup.py: configure_logging must receive force=True ───────────────
+
+
+def test_setup_telemetry_passes_force_true_to_configure_logging(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Kills mutants that change configure_logging(cfg, force=True) to force=False/None/absent."""
+    from undef.telemetry.setup import _reset_setup_state_for_tests
+
+    _reset_setup_state_for_tests()
+    force_values: list[object] = []
+
+    def _capture_force(cfg: object, *, force: object = False) -> None:
+        force_values.append(force)
+
+    monkeypatch.setattr("undef.telemetry.setup.apply_runtime_config", lambda _cfg: None)
+    monkeypatch.setattr("undef.telemetry.setup.configure_logging", _capture_force)
+    monkeypatch.setattr("undef.telemetry.setup._refresh_otel_tracing", lambda: None)
+    monkeypatch.setattr("undef.telemetry.setup._refresh_otel_metrics", lambda: None)
+    monkeypatch.setattr("undef.telemetry.setup.setup_tracing", lambda _cfg: None)
+    monkeypatch.setattr("undef.telemetry.setup.setup_metrics", lambda _cfg: None)
+    monkeypatch.setattr("undef.telemetry.setup._rebind_slo_instruments", lambda: None)
+    setup_telemetry()
+    assert force_values == [True]
+
+
+# ── logger/core.py: configure_logging default must be force=False ─────
+
+
+def test_configure_logging_second_call_is_noop_without_force(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Kills mutant that changes `force: bool = False` to `True`.
+
+    If force defaults to True, the second call reconfigures even with the same config.
+    inspect.signature is unreliable against mutmut trampolines, so we test behavior.
+    """
+    import structlog as sl
+    from undef.telemetry.logger import core as lcore
+
+    lcore._reset_logging_for_tests()
+    cfg = TelemetryConfig()
+    lcore.configure_logging(cfg)  # First call — configures
+
+    reconfigure_calls: list[object] = []
+    monkeypatch.setattr(sl, "configure", lambda **kw: reconfigure_calls.append(kw))
+    lcore.configure_logging(cfg)  # Second call without force — must be no-op
+    assert reconfigure_calls == []
+
+
+# ── runtime.py: _provider_config_changed treats backpressure as hot ───
+
+
+def test_provider_config_changed_backpressure_is_hot_reload(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Kills mutants that corrupt the 'backpressure' key in the hot-key tuple."""
+    from undef.telemetry import runtime as runtime_mod
+    from undef.telemetry.config import BackpressureConfig, TelemetryConfig
+
+    base = TelemetryConfig(service_name="svc")
+    modified = TelemetryConfig(service_name="svc")
+    modified.backpressure = BackpressureConfig(logs_maxsize=9999)
+    assert not runtime_mod._provider_config_changed(base, modified)
+
+
+# ── runtime.py: reconfigure_telemetry error message ──────────────────
+
+
+def test_reconfigure_telemetry_error_message_exact(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Kills mutants that corrupt the RuntimeError message text."""
+    from undef.telemetry import runtime as runtime_mod
+    from undef.telemetry.logger import core as logger_core
+
+    runtime_mod.reset_runtime_for_tests()
+    runtime_mod.apply_runtime_config(TelemetryConfig(service_name="svc"))
+    logger_core._otel_log_provider = object()
+    try:
+        with pytest.raises(RuntimeError) as exc_info:
+            runtime_mod.reconfigure_telemetry(TelemetryConfig(service_name="renamed"))
+        msg = str(exc_info.value)
+        assert "OpenTelemetry" in msg
+        assert "setup_telemetry" in msg
+        assert "; restart the process" in msg
+    finally:
+        logger_core._otel_log_provider = None
+
+
+# ── runtime.py: reconfigure_telemetry or-logic for all three providers
+
+
+def test_reconfigure_telemetry_raises_when_only_metrics_provider_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Kills mutant that changes `or` to `and` in the provider-installed guard."""
+    from undef.telemetry import runtime as runtime_mod
+    from undef.telemetry.logger import core as logger_core
+    from undef.telemetry.metrics import provider as metrics_provider
+    from undef.telemetry.tracing import provider as tracing_provider
+
+    runtime_mod.reset_runtime_for_tests()
+    runtime_mod.apply_runtime_config(TelemetryConfig(service_name="svc"))
+    logger_core._otel_log_provider = None
+    tracing_provider._provider_ref = None
+    monkeypatch.setattr(metrics_provider, "_meter_provider", object())
+    with pytest.raises(RuntimeError, match="provider-changing reconfiguration"):
+        runtime_mod.reconfigure_telemetry(TelemetryConfig(service_name="renamed"))

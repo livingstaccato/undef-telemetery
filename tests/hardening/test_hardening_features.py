@@ -183,10 +183,11 @@ def test_backpressure_queue_limits_and_release_paths() -> None:
     tokenless = backpressure_mod.try_acquire("traces")
     assert tokenless is not None
     backpressure_mod.release(tokenless)
-    unknown = backpressure_mod.try_acquire("unknown")
-    assert unknown is not None
+    with pytest.raises(ValueError, match="unknown signal"):
+        backpressure_mod.try_acquire("unknown")
     backpressure_mod.release(None)
-    backpressure_mod.release(backpressure_mod.QueueTicket(signal="unknown", token=9999))
+    with pytest.raises(ValueError, match="unknown signal"):
+        backpressure_mod.release(backpressure_mod.QueueTicket(signal="unknown", token=9999))
 
 
 def test_resilience_success_fail_open_and_fail_closed() -> None:

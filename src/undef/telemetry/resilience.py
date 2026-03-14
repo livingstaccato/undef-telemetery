@@ -191,15 +191,14 @@ def _is_running_in_event_loop() -> bool:
 
 
 def _warn_async_risk(signal: Signal, policy: ExporterPolicy) -> None:
-    sig = signal if signal in {"logs", "traces", "metrics"} else "logs"  # pragma: no mutate
     with _lock:
-        if sig in _async_warned_signals:
+        if signal in _async_warned_signals:
             return
-        _async_warned_signals.add(sig)
+        _async_warned_signals.add(signal)
     if policy.allow_blocking_in_event_loop:
         warnings.warn(  # pragma: no mutate
             (
-                f"resilience policy for {sig} allows blocking behavior in an active event loop "
+                f"resilience policy for {signal} allows blocking behavior in an active event loop "
                 "(retries/backoff configured)"  # pragma: no mutate
             ),
             RuntimeWarning,
@@ -208,7 +207,7 @@ def _warn_async_risk(signal: Signal, policy: ExporterPolicy) -> None:
         return
     warnings.warn(  # pragma: no mutate
         (
-            f"resilience policy for {sig} uses retries/backoff in an active event loop; "
+            f"resilience policy for {signal} uses retries/backoff in an active event loop; "
             "forcing fail-fast behavior for this call"  # pragma: no mutate
         ),
         RuntimeWarning,
