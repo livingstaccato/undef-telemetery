@@ -91,6 +91,8 @@ def setup_metrics(config: TelemetryConfig) -> None:
 
 
 def get_meter(name: str | None = None) -> Any | None:
+    if _meter_provider is None:
+        return None
     meter_name = "undef.telemetry" if name is None else name
     with _meter_lock:
         cached = _meters.get(meter_name)

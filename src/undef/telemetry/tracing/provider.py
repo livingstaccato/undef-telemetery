@@ -134,6 +134,8 @@ class _TracerLike(Protocol):
 
 
 def get_tracer(name: str | None = None) -> _TracerLike:
+    if not _provider_configured:
+        return _NoopTracer()
     otel_trace = _load_otel_trace_api()
     if otel_trace is not None:
         tracer_name = "undef.telemetry" if name is None else name
@@ -143,6 +145,8 @@ def get_tracer(name: str | None = None) -> _TracerLike:
 
 def _sync_otel_trace_context() -> None:
     """Sync the active OTel span's trace/span IDs into our contextvars."""
+    if not _provider_configured:
+        return
     otel_trace = _load_otel_trace_api()
     if otel_trace is None:
         return

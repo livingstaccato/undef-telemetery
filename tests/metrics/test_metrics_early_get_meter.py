@@ -33,9 +33,10 @@ class TestEarlyGetMeterDoesNotBlockSetup:
         # Simulate OTel API returning different meters before vs after provider setup
         pre_setup_meter = SimpleNamespace(tag="pre-setup")
         real_meter = SimpleNamespace(tag="real")
+        _early_sentinel = object()
 
         def _fake_get_meter(name: str) -> object:
-            if prov_mod._meter_provider is not None:
+            if prov_mod._meter_provider is not None and prov_mod._meter_provider is not _early_sentinel:
                 return real_meter
             return pre_setup_meter
 
@@ -45,9 +46,11 @@ class TestEarlyGetMeterDoesNotBlockSetup:
         )
         monkeypatch.setattr(prov_mod, "_load_otel_metrics_api", lambda: fake_otel)
 
-        # 1) Early get_meter() — before setup
+        # 1) Early get_meter() — before setup (gate requires non-None _meter_provider)
+        prov_mod._meter_provider = _early_sentinel
         early = get_meter()
         assert early is pre_setup_meter
+        prov_mod._meter_provider = None  # reset so setup_metrics can proceed
 
         # 2) Now run setup_metrics — must NOT short-circuit
         provider_cls = Mock(return_value="provider")
@@ -81,10 +84,13 @@ class TestEarlyGetMeterDoesNotBlockSetup:
         )
         monkeypatch.setattr(prov_mod, "_load_otel_metrics_api", lambda: fake_otel)
 
-        # Cache a custom-named meter before setup
+        # Cache a custom-named meter before setup (gate requires non-None _meter_provider)
+        _early_sentinel = object()
+        prov_mod._meter_provider = _early_sentinel
         stale = get_meter("custom.service")
         assert stale is real_meter  # same object for simplicity
         assert "custom.service" in prov_mod._meters
+        prov_mod._meter_provider = None  # reset so setup_metrics can proceed
 
         # Run setup
         provider_cls = Mock(return_value="provider")

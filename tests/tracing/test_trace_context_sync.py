@@ -21,6 +21,7 @@ def test_sync_otel_trace_context_with_real_span(monkeypatch: pytest.MonkeyPatch)
     mock_span = SimpleNamespace(get_span_context=lambda: mock_ctx)
     mock_api = SimpleNamespace(get_current_span=lambda: mock_span)
     monkeypatch.setattr(provider_mod, "_HAS_OTEL", True)
+    monkeypatch.setattr(provider_mod, "_provider_configured", True)
     monkeypatch.setattr(provider_mod, "_load_otel_trace_api", lambda: mock_api)
 
     set_trace_context(None, None)
@@ -124,6 +125,7 @@ def test_trace_decorator_syncs_otel_context(monkeypatch: pytest.MonkeyPatch) -> 
 
     mock_api = SimpleNamespace(get_current_span=lambda: mock_span, get_tracer=lambda _n: _OtelTracer())
     monkeypatch.setattr(provider_mod, "_HAS_OTEL", True)
+    monkeypatch.setattr(provider_mod, "_provider_configured", True)
     monkeypatch.setattr(provider_mod, "_load_otel_trace_api", lambda: mock_api)
     monkeypatch.setattr("undef.telemetry.tracing.decorators.get_tracer", lambda _name: _OtelTracer())
     monkeypatch.setattr("undef.telemetry.tracing.decorators.should_sample", lambda _s, _n: True)
