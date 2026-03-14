@@ -175,13 +175,18 @@ def shutdown_logging() -> None:
     global _configured, _active_config, _otel_log_provider
     with _lock:
         provider = _otel_log_provider
-        if provider is not None:
+        if provider is None:
+            _configured = False
+            _active_config = None
+            return
+        try:
             shutdown = getattr(provider, "shutdown", None)
             if callable(shutdown):
                 shutdown()
-        _otel_log_provider = None
-        _active_config = None
-        _configured = False
+        finally:
+            _otel_log_provider = None
+            _active_config = None
+            _configured = False
 
 
 def _reset_logging_for_tests() -> None:

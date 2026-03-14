@@ -23,7 +23,7 @@ from undef.telemetry.setup import (
 def test_reconfigure_telemetry_calls_shutdown_then_setup_for_provider_changes(monkeypatch: pytest.MonkeyPatch) -> None:
     from undef.telemetry import runtime as runtime_mod
 
-    _reset_setup_state_for_tests()
+    _reset_all_for_tests()
     calls: list[str] = []
     runtime_mod.reset_runtime_for_tests()
     runtime_mod.apply_runtime_config(TelemetryConfig(service_name="before"))
@@ -45,7 +45,7 @@ def test_reconfigure_telemetry_calls_shutdown_then_setup_for_provider_changes(mo
 def test_reconfigure_telemetry_with_config(monkeypatch: pytest.MonkeyPatch) -> None:
     from undef.telemetry import runtime as runtime_mod
 
-    _reset_setup_state_for_tests()
+    _reset_all_for_tests()
     runtime_mod.reset_runtime_for_tests()
     runtime_mod.apply_runtime_config(TelemetryConfig(service_name="before"))
     seen_configs: list[object] = []
