@@ -166,14 +166,16 @@ def test_setup_telemetry_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
     def _use(_resource: str, _utilization_percent: int) -> None:
         calls["use"] += 1
 
+    import undef.telemetry.slo as slo_mod
+
     monkeypatch.setattr("undef.telemetry.setup.apply_runtime_config", _runtime)
     monkeypatch.setattr("undef.telemetry.setup.configure_logging", _log)
     monkeypatch.setattr("undef.telemetry.setup._refresh_otel_tracing", lambda: None)
     monkeypatch.setattr("undef.telemetry.setup._refresh_otel_metrics", lambda: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_tracing", _trace)
     monkeypatch.setattr("undef.telemetry.setup.setup_metrics", _metrics)
-    monkeypatch.setattr("undef.telemetry.setup.record_red_metrics", _red)
-    monkeypatch.setattr("undef.telemetry.setup.record_use_metrics", _use)
+    monkeypatch.setattr(slo_mod, "record_red_metrics", _red)
+    monkeypatch.setattr(slo_mod, "record_use_metrics", _use)
 
     cfg1 = setup_telemetry()
     cfg2 = setup_telemetry()
@@ -188,14 +190,16 @@ def test_setup_telemetry_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_setup_telemetry_emits_slo_startup_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     _reset_setup_state_for_tests()
     calls = {"red": 0, "use": 0}
+    import undef.telemetry.slo as slo_mod
+
     monkeypatch.setattr("undef.telemetry.setup.apply_runtime_config", lambda _cfg: None)
     monkeypatch.setattr("undef.telemetry.setup.configure_logging", lambda _cfg, **kw: None)
     monkeypatch.setattr("undef.telemetry.setup._refresh_otel_tracing", lambda: None)
     monkeypatch.setattr("undef.telemetry.setup._refresh_otel_metrics", lambda: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_tracing", lambda _cfg: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_metrics", lambda _cfg: None)
-    monkeypatch.setattr("undef.telemetry.setup.record_red_metrics", lambda *_args: calls.__setitem__("red", 1))
-    monkeypatch.setattr("undef.telemetry.setup.record_use_metrics", lambda *_args: calls.__setitem__("use", 1))
+    monkeypatch.setattr(slo_mod, "record_red_metrics", lambda *_args: calls.__setitem__("red", 1))
+    monkeypatch.setattr(slo_mod, "record_use_metrics", lambda *_args: calls.__setitem__("use", 1))
     setup_telemetry(
         TelemetryConfig.from_env({"UNDEF_SLO_ENABLE_RED_METRICS": "true", "UNDEF_SLO_ENABLE_USE_METRICS": "true"})
     )

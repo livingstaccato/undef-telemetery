@@ -104,9 +104,9 @@ def reconfigure_telemetry(config: TelemetryConfig | None = None) -> TelemetryCon
     current = get_runtime_config()
     if _provider_config_changed(current, target):
         if (
-            logger_core._otel_log_provider is not None
-            or tracing_provider._provider_ref is not None
-            or metrics_provider._meter_provider is not None
+            logger_core._has_otel_log_provider()
+            or tracing_provider._has_tracing_provider()
+            or metrics_provider._has_meter_provider()
         ):
             raise RuntimeError(
                 "provider-changing reconfiguration is unsupported after OpenTelemetry providers are installed; "

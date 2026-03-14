@@ -144,6 +144,8 @@ def test_setup_telemetry_slo_red_metrics_exact_args(monkeypatch: pytest.MonkeyPa
 
     Expected: record_red_metrics("startup", "INIT", 200, 0.0)
     """
+    import undef.telemetry.slo as slo_mod
+
     red_mock = MagicMock()
     monkeypatch.setattr("undef.telemetry.setup.apply_runtime_config", lambda _: None)
     monkeypatch.setattr("undef.telemetry.setup.configure_logging", lambda _, **kw: None)
@@ -151,9 +153,9 @@ def test_setup_telemetry_slo_red_metrics_exact_args(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr("undef.telemetry.setup._refresh_otel_metrics", lambda: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_tracing", lambda _: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_metrics", lambda _: None)
-    monkeypatch.setattr("undef.telemetry.setup._rebind_slo_instruments", lambda: None)
-    monkeypatch.setattr("undef.telemetry.setup.record_red_metrics", red_mock)
-    monkeypatch.setattr("undef.telemetry.setup.record_use_metrics", lambda *_: None)
+    monkeypatch.setattr(slo_mod, "_rebind_slo_instruments", lambda: None)
+    monkeypatch.setattr(slo_mod, "record_red_metrics", red_mock)
+    monkeypatch.setattr(slo_mod, "record_use_metrics", lambda *_: None)
 
     cfg = TelemetryConfig(slo=SLOConfig(enable_red_metrics=True))
     setup_telemetry(cfg)
@@ -171,6 +173,8 @@ def test_setup_telemetry_slo_use_metrics_exact_args(monkeypatch: pytest.MonkeyPa
 
     Expected: record_use_metrics("startup", 0)
     """
+    import undef.telemetry.slo as slo_mod
+
     use_mock = MagicMock()
     monkeypatch.setattr("undef.telemetry.setup.apply_runtime_config", lambda _: None)
     monkeypatch.setattr("undef.telemetry.setup.configure_logging", lambda _, **kw: None)
@@ -178,9 +182,9 @@ def test_setup_telemetry_slo_use_metrics_exact_args(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr("undef.telemetry.setup._refresh_otel_metrics", lambda: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_tracing", lambda _: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_metrics", lambda _: None)
-    monkeypatch.setattr("undef.telemetry.setup._rebind_slo_instruments", lambda: None)
-    monkeypatch.setattr("undef.telemetry.setup.record_red_metrics", lambda *_: None)
-    monkeypatch.setattr("undef.telemetry.setup.record_use_metrics", use_mock)
+    monkeypatch.setattr(slo_mod, "_rebind_slo_instruments", lambda: None)
+    monkeypatch.setattr(slo_mod, "record_red_metrics", lambda *_: None)
+    monkeypatch.setattr(slo_mod, "record_use_metrics", use_mock)
 
     cfg = TelemetryConfig(slo=SLOConfig(enable_use_metrics=True))
     setup_telemetry(cfg)
@@ -190,6 +194,8 @@ def test_setup_telemetry_slo_use_metrics_exact_args(monkeypatch: pytest.MonkeyPa
 
 def test_setup_telemetry_slo_both_metrics_exact_args(monkeypatch: pytest.MonkeyPatch) -> None:
     """Kill all SLO arg mutations at once with both enabled."""
+    import undef.telemetry.slo as slo_mod
+
     red_mock = MagicMock()
     use_mock = MagicMock()
     monkeypatch.setattr("undef.telemetry.setup.apply_runtime_config", lambda _: None)
@@ -198,9 +204,9 @@ def test_setup_telemetry_slo_both_metrics_exact_args(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr("undef.telemetry.setup._refresh_otel_metrics", lambda: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_tracing", lambda _: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_metrics", lambda _: None)
-    monkeypatch.setattr("undef.telemetry.setup._rebind_slo_instruments", lambda: None)
-    monkeypatch.setattr("undef.telemetry.setup.record_red_metrics", red_mock)
-    monkeypatch.setattr("undef.telemetry.setup.record_use_metrics", use_mock)
+    monkeypatch.setattr(slo_mod, "_rebind_slo_instruments", lambda: None)
+    monkeypatch.setattr(slo_mod, "record_red_metrics", red_mock)
+    monkeypatch.setattr(slo_mod, "record_use_metrics", use_mock)
 
     cfg = TelemetryConfig(slo=SLOConfig(enable_red_metrics=True, enable_use_metrics=True))
     setup_telemetry(cfg)
@@ -223,6 +229,8 @@ def test_setup_telemetry_completed_list_has_correct_keys(
     We test this by making _rebind_slo_instruments fail (after all 3 steps complete)
     and checking that all 3 teardowns are called.
     """
+    import undef.telemetry.slo as slo_mod
+
     shutdown_calls: list[str] = []
 
     monkeypatch.setattr("undef.telemetry.setup.apply_runtime_config", lambda _: None)
@@ -232,7 +240,8 @@ def test_setup_telemetry_completed_list_has_correct_keys(
     monkeypatch.setattr("undef.telemetry.setup.setup_tracing", lambda _: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_metrics", lambda _: None)
     monkeypatch.setattr(
-        "undef.telemetry.setup._rebind_slo_instruments",
+        slo_mod,
+        "_rebind_slo_instruments",
         lambda: (_ for _ in ()).throw(RuntimeError("rebind_boom")),
     )
     monkeypatch.setattr(
@@ -274,9 +283,11 @@ def test_setup_telemetry_passes_force_true_to_configure_logging(monkeypatch: pyt
     monkeypatch.setattr("undef.telemetry.setup.configure_logging", _capture_force)
     monkeypatch.setattr("undef.telemetry.setup._refresh_otel_tracing", lambda: None)
     monkeypatch.setattr("undef.telemetry.setup._refresh_otel_metrics", lambda: None)
+    import undef.telemetry.slo as slo_mod
+
     monkeypatch.setattr("undef.telemetry.setup.setup_tracing", lambda _cfg: None)
     monkeypatch.setattr("undef.telemetry.setup.setup_metrics", lambda _cfg: None)
-    monkeypatch.setattr("undef.telemetry.setup._rebind_slo_instruments", lambda: None)
+    monkeypatch.setattr(slo_mod, "_rebind_slo_instruments", lambda: None)
     setup_telemetry()
     assert force_values == [True]
 

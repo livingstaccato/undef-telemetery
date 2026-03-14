@@ -93,6 +93,18 @@ async def test_warn_async_risk_adds_signal_to_warned_set() -> None:
 
 
 @pytest.mark.asyncio
+async def test_warn_async_risk_policy_change_triggers_new_warning() -> None:
+    """Kill mutant: key is just signal (not tuple) so policy change doesn't warn again."""
+    policy_block = ExporterPolicy(retries=1, backoff_seconds=0.1, allow_blocking_in_event_loop=True)
+    policy_fail = ExporterPolicy(retries=1, backoff_seconds=0.1, allow_blocking_in_event_loop=False)
+    with pytest.warns(RuntimeWarning, match="allows blocking"):
+        _warn_async_risk("logs", policy_block)
+    # Same signal, different allow_blocking_in_event_loop → different key → new warning
+    with pytest.warns(RuntimeWarning, match="fail-fast"):
+        _warn_async_risk("logs", policy_fail)
+
+
+@pytest.mark.asyncio
 async def test_warn_async_risk_stacklevel_is_3() -> None:
     """Kill mutants changing stacklevel=3 to stacklevel=4 or removing it."""
     policy = ExporterPolicy(retries=1, backoff_seconds=0.1, allow_blocking_in_event_loop=False)

@@ -24,6 +24,8 @@ _meters: dict[str, Any] = {}
 _meter_provider: Any | None = None
 _meter_lock = threading.Lock()
 _meter_global_set: bool = False  # True once we called set_meter_provider()
+_setup_generation: int = 0
+
 
 # Capture the default OTel meter provider at module load so that
 # _has_real_meter_provider() can use identity comparison instead of
@@ -33,6 +35,7 @@ def _capture_default_meter_provider() -> Any | None:
         return None
     api = _otel.load_otel_metrics_api()
     return api.get_meter_provider() if api is not None else None
+
 
 _DEFAULT_METER_PROVIDER: Any | None = _capture_default_meter_provider()
 
@@ -54,6 +57,12 @@ def _refresh_otel_metrics() -> None:
     _HAS_OTEL_METRICS = _has_otel_metrics()
 
 
+def _has_meter_provider() -> bool:
+    """Return True if a meter provider is installed (thread-safe)."""
+    with _meter_lock:
+        return _meter_provider is not None
+
+
 def setup_metrics(config: TelemetryConfig) -> None:
     global _meter_provider, _meter_global_set
     if not config.metrics.enabled or not _HAS_OTEL_METRICS:
@@ -62,6 +71,7 @@ def setup_metrics(config: TelemetryConfig) -> None:
     with _meter_lock:
         if _meter_provider is not None:
             return
+        gen = _setup_generation  # snapshot before releasing the lock
 
     # Build exporter outside the lock to avoid blocking concurrent
     # get_meter()/shutdown_metrics() callers during slow network I/O.
@@ -88,8 +98,8 @@ def setup_metrics(config: TelemetryConfig) -> None:
     provider = provider_cls(resource=resource, metric_readers=readers)
 
     with _meter_lock:
-        if _meter_provider is not None:
-            # Another thread won the race — discard ours.
+        if _meter_provider is not None or _setup_generation != gen:
+            # Another thread won the race OR shutdown happened mid-build — discard ours.
             shutdown = getattr(provider, "shutdown", None)
             if callable(shutdown):
                 shutdown()
@@ -136,17 +146,19 @@ def get_meter(name: str | None = None) -> Any | None:
 
 
 def _set_meter_for_test(meter: Any | None) -> None:
-    global _meter_provider, _meter_global_set
+    global _meter_provider, _meter_global_set, _setup_generation
     _meters.clear()
     if meter is not None:
         _meters["undef.telemetry"] = meter
     _meter_provider = None
     _meter_global_set = False
+    _setup_generation = 0
 
 
 def shutdown_metrics() -> None:
-    global _meter_provider
+    global _meter_provider, _setup_generation
     with _meter_lock:
+        _setup_generation += 1
         provider = _meter_provider
         if provider is None:
             return

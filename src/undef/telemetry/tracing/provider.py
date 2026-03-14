@@ -26,6 +26,8 @@ _provider_configured: bool = False
 _provider_lock = threading.Lock()
 _provider_ref: Any | None = None
 _otel_global_set: bool = False  # True once we called set_tracer_provider()
+_setup_generation: int = 0
+
 
 # Capture the default OTel tracer provider at module load so that
 # _has_real_tracer_provider() can use identity comparison instead of
@@ -35,6 +37,7 @@ def _capture_default_tracer_provider() -> Any | None:
         return None
     api = _otel.load_otel_trace_api()
     return api.get_tracer_provider() if api is not None else None
+
 
 _DEFAULT_TRACER_PROVIDER: Any | None = _capture_default_tracer_provider()
 
@@ -83,6 +86,12 @@ def _load_otel_tracing_components() -> tuple[Any, Any, Any, Any] | None:
     return _otel.load_otel_tracing_components()
 
 
+def _has_tracing_provider() -> bool:
+    """Return True if a tracing provider is installed (thread-safe)."""
+    with _provider_lock:
+        return _provider_ref is not None
+
+
 def setup_tracing(config: TelemetryConfig) -> None:
     global _provider_configured, _provider_ref, _otel_global_set
     if not config.tracing.enabled or not _HAS_OTEL:
@@ -91,6 +100,7 @@ def setup_tracing(config: TelemetryConfig) -> None:
     with _provider_lock:
         if _provider_configured:
             return
+        gen = _setup_generation  # snapshot before releasing the lock
 
     # Build provider/exporter outside the lock to avoid blocking
     # concurrent get_tracer()/shutdown_tracing() during slow network I/O.
@@ -115,8 +125,8 @@ def setup_tracing(config: TelemetryConfig) -> None:
             provider.add_span_processor(processor_cls(exporter))
 
     with _provider_lock:
-        if _provider_configured:
-            # Another thread won the race — discard ours.
+        if _provider_configured or _setup_generation != gen:
+            # Another thread won the race OR shutdown happened mid-build — discard ours.
             shutdown = getattr(provider, "shutdown", None)
             if callable(shutdown):
                 shutdown()
@@ -128,8 +138,9 @@ def setup_tracing(config: TelemetryConfig) -> None:
 
 
 def shutdown_tracing() -> None:
-    global _provider_ref, _provider_configured
+    global _provider_ref, _provider_configured, _setup_generation
     with _provider_lock:
+        _setup_generation += 1
         provider = _provider_ref
         if provider is None:
             _provider_configured = False
@@ -144,10 +155,11 @@ def shutdown_tracing() -> None:
 
 
 def _reset_tracing_for_tests() -> None:
-    global _provider_configured, _provider_ref, _otel_global_set
+    global _provider_configured, _provider_ref, _otel_global_set, _setup_generation
     _provider_configured = False
     _provider_ref = None
     _otel_global_set = False
+    _setup_generation = 0
 
 
 class _TracerLike(Protocol):

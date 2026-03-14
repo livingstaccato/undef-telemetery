@@ -67,7 +67,8 @@ def set_sampling_policy(signal: Signal, policy: SamplingPolicy) -> None:
 def get_sampling_policy(signal: Signal) -> SamplingPolicy:
     sig = _validate_signal(signal)
     with _lock:
-        return _policies[sig]
+        stored = _policies[sig]
+        return SamplingPolicy(default_rate=stored.default_rate, overrides=dict(stored.overrides))
 
 
 def should_sample(signal: Signal, key: str | None = None) -> bool:

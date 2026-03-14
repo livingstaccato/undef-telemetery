@@ -189,6 +189,12 @@ def _reset_logging_for_tests() -> None:
     _otel_log_provider = None
 
 
+def _has_otel_log_provider() -> bool:
+    """Return True if an OTel log provider is installed (thread-safe)."""
+    with _lock:
+        return _otel_log_provider is not None
+
+
 def get_logger(name: str | None = None) -> _TraceWrapper:
     if not _configured:
         from undef.telemetry.config import TelemetryConfig
@@ -205,7 +211,9 @@ class _TraceWrapper:
         return getattr(self._logger, item)
 
     def trace(self, event: str, **kwargs: Any) -> None:
-        if _active_config is not None and _active_config.logging.level == "TRACE":
+        with _lock:
+            active = _active_config
+        if active is not None and active.logging.level == "TRACE":
             self._logger.debug(event, _trace=True, **kwargs)
 
     def bind(self, **kwargs: Any) -> _TraceWrapper:
