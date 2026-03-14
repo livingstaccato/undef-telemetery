@@ -237,6 +237,110 @@ class TestLockedProviderAccessors:
         monkeypatch.setattr(lc, "_otel_log_provider", object())
         assert _has_otel_log_provider() is True
 
+    # ── Post-shutdown: global-set flag keeps guard alive ─────────────
+
+    def test_has_tracing_provider_true_after_shutdown_via_global_set(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """After shutdown _provider_ref is None but _otel_global_set stays True — guard must fire."""
+        from undef.telemetry.tracing import provider as tp
+        from undef.telemetry.tracing.provider import _has_tracing_provider, _reset_tracing_for_tests
+
+        _reset_tracing_for_tests()
+        monkeypatch.setattr(tp, "_provider_ref", None)
+        monkeypatch.setattr(tp, "_otel_global_set", True)
+        assert _has_tracing_provider() is True
+
+    def test_has_meter_provider_true_after_shutdown_via_global_set(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """After shutdown _meter_provider is None but _meter_global_set stays True — guard must fire."""
+        from undef.telemetry.metrics import provider as mp
+        from undef.telemetry.metrics.provider import _has_meter_provider, _set_meter_for_test
+
+        _set_meter_for_test(None)
+        monkeypatch.setattr(mp, "_meter_provider", None)
+        monkeypatch.setattr(mp, "_meter_global_set", True)
+        assert _has_meter_provider() is True
+
+    def test_has_otel_log_provider_true_after_shutdown_via_global_set(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """After shutdown _otel_log_provider is None but _otel_log_global_set stays True — guard must fire."""
+        from undef.telemetry.logger import core as lc
+        from undef.telemetry.logger.core import _has_otel_log_provider, _reset_logging_for_tests
+
+        _reset_logging_for_tests()
+        monkeypatch.setattr(lc, "_otel_log_provider", None)
+        monkeypatch.setattr(lc, "_otel_log_global_set", True)
+        assert _has_otel_log_provider() is True
+
+
+# ── Guard fires even after providers are shut down ───────────────────
+
+
+class TestReconfigureGuardAfterShutdown:
+    def test_reconfigure_raises_when_tracing_global_was_set(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """reconfigure_telemetry() must raise even after shutdown when _otel_global_set is True."""
+        from undef.telemetry import runtime as runtime_mod
+        from undef.telemetry.logger import core as logger_core
+        from undef.telemetry.metrics import provider as metrics_provider
+        from undef.telemetry.tracing import provider as tracing_provider
+
+        runtime_mod.reset_runtime_for_tests()
+        runtime_mod.apply_runtime_config(TelemetryConfig(service_name="svc-a"))
+
+        # Simulate: provider was installed then shut down (ref=None, global_set=True)
+        monkeypatch.setattr(tracing_provider, "_provider_ref", None)
+        monkeypatch.setattr(tracing_provider, "_otel_global_set", True)
+        monkeypatch.setattr(metrics_provider, "_meter_provider", None)
+        monkeypatch.setattr(metrics_provider, "_meter_global_set", False)
+        monkeypatch.setattr(logger_core, "_otel_log_provider", None)
+        monkeypatch.setattr(logger_core, "_otel_log_global_set", False)
+
+        with pytest.raises(RuntimeError, match="provider-changing reconfiguration is unsupported"):
+            runtime_mod.reconfigure_telemetry(TelemetryConfig(service_name="svc-b"))
+
+    def test_reconfigure_raises_when_metrics_global_was_set(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """reconfigure_telemetry() must raise even after metrics shutdown when _meter_global_set is True."""
+        from undef.telemetry import runtime as runtime_mod
+        from undef.telemetry.logger import core as logger_core
+        from undef.telemetry.metrics import provider as metrics_provider
+        from undef.telemetry.tracing import provider as tracing_provider
+
+        runtime_mod.reset_runtime_for_tests()
+        runtime_mod.apply_runtime_config(TelemetryConfig(service_name="svc-a"))
+
+        monkeypatch.setattr(tracing_provider, "_provider_ref", None)
+        monkeypatch.setattr(tracing_provider, "_otel_global_set", False)
+        monkeypatch.setattr(metrics_provider, "_meter_provider", None)
+        monkeypatch.setattr(metrics_provider, "_meter_global_set", True)
+        monkeypatch.setattr(logger_core, "_otel_log_provider", None)
+        monkeypatch.setattr(logger_core, "_otel_log_global_set", False)
+
+        with pytest.raises(RuntimeError, match="provider-changing reconfiguration is unsupported"):
+            runtime_mod.reconfigure_telemetry(TelemetryConfig(service_name="svc-b"))
+
+    def test_reconfigure_raises_when_log_global_was_set(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """reconfigure_telemetry() must raise even after logging shutdown when _otel_log_global_set is True."""
+        from undef.telemetry import runtime as runtime_mod
+        from undef.telemetry.logger import core as logger_core
+        from undef.telemetry.metrics import provider as metrics_provider
+        from undef.telemetry.tracing import provider as tracing_provider
+
+        runtime_mod.reset_runtime_for_tests()
+        runtime_mod.apply_runtime_config(TelemetryConfig(service_name="svc-a"))
+
+        monkeypatch.setattr(tracing_provider, "_provider_ref", None)
+        monkeypatch.setattr(tracing_provider, "_otel_global_set", False)
+        monkeypatch.setattr(metrics_provider, "_meter_provider", None)
+        monkeypatch.setattr(metrics_provider, "_meter_global_set", False)
+        monkeypatch.setattr(logger_core, "_otel_log_provider", None)
+        monkeypatch.setattr(logger_core, "_otel_log_global_set", True)
+
+        with pytest.raises(RuntimeError, match="provider-changing reconfiguration is unsupported"):
+            runtime_mod.reconfigure_telemetry(TelemetryConfig(service_name="svc-b"))
+
 
 # ── Issue 5: reconfigure_telemetry uses locked accessors ─────────────
 

@@ -43,6 +43,7 @@ _configured = False
 _lock = threading.Lock()
 _active_config: TelemetryConfig | None = None
 _otel_log_provider: object | None = None
+_otel_log_global_set: bool = False  # True once we called set_logger_provider()
 
 
 def _has_otel_logs() -> bool:
@@ -70,7 +71,7 @@ def _load_instrumentation_logging_handler() -> _InstrumentationLoggingHandlerFac
 
 
 def _build_handlers(config: TelemetryConfig, level: int) -> list[logging.Handler]:
-    global _otel_log_provider
+    global _otel_log_provider, _otel_log_global_set
     handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]  # pragma: no mutate
     _otel_log_provider = None
 
@@ -96,6 +97,7 @@ def _build_handlers(config: TelemetryConfig, level: int) -> list[logging.Handler
         return handlers
     provider.add_log_record_processor(sdk_logs_export_mod.BatchLogRecordProcessor(exporter))
     logs_api_mod.set_logger_provider(provider)
+    _otel_log_global_set = True
     instrumentation_handler_cls = _load_instrumentation_logging_handler()
     if instrumentation_handler_cls is not None:
         handlers.append(
@@ -183,16 +185,17 @@ def shutdown_logging() -> None:
 
 
 def _reset_logging_for_tests() -> None:
-    global _configured, _active_config, _otel_log_provider
+    global _configured, _active_config, _otel_log_provider, _otel_log_global_set
     _configured = False
     _active_config = None
     _otel_log_provider = None
+    _otel_log_global_set = False
 
 
 def _has_otel_log_provider() -> bool:
-    """Return True if an OTel log provider is installed (thread-safe)."""
+    """Return True if an OTel log provider is installed or was ever installed (thread-safe)."""
     with _lock:
-        return _otel_log_provider is not None
+        return _otel_log_provider is not None or _otel_log_global_set
 
 
 def get_logger(name: str | None = None) -> _TraceWrapper:

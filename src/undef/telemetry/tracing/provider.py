@@ -87,9 +87,9 @@ def _load_otel_tracing_components() -> tuple[Any, Any, Any, Any] | None:
 
 
 def _has_tracing_provider() -> bool:
-    """Return True if a tracing provider is installed (thread-safe)."""
+    """Return True if a tracing provider is installed or was ever installed (thread-safe)."""
     with _provider_lock:
-        return _provider_ref is not None
+        return _provider_ref is not None or _otel_global_set
 
 
 def setup_tracing(config: TelemetryConfig) -> None:

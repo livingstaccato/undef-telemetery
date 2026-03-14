@@ -58,9 +58,9 @@ def _refresh_otel_metrics() -> None:
 
 
 def _has_meter_provider() -> bool:
-    """Return True if a meter provider is installed (thread-safe)."""
+    """Return True if a meter provider is installed or was ever installed (thread-safe)."""
     with _meter_lock:
-        return _meter_provider is not None
+        return _meter_provider is not None or _meter_global_set
 
 
 def setup_metrics(config: TelemetryConfig) -> None:
