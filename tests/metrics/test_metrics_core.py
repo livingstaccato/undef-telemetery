@@ -469,6 +469,7 @@ def test_metric_exemplar_supported_branch(monkeypatch: pytest.MonkeyPatch) -> No
     assert cast(dict[str, str], counter_kwargs["exemplar"])["trace_id"] == "a" * 32
     assert cast(dict[str, str], hist_kwargs["exemplar"])["span_id"] == "b" * 16
 
+
 def test_metric_exemplar_empty_context_branch(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "undef.telemetry.metrics.fallback.get_trace_context", lambda: {"trace_id": None, "span_id": None}
@@ -494,7 +495,6 @@ def test_metric_early_return_branches_for_sampling_and_queue(monkeypatch: pytest
     h = instruments_mod.Histogram("no-sample")
     h.record(3.0)
     assert h.count == 0
-
     c2 = instruments_mod.Counter("queue-none")
     c2.add(1)
     assert c2.value == 0

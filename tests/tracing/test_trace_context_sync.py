@@ -323,7 +323,8 @@ class TestSetupTracingSetsGlobalFlag:
             get_tracer=Mock(),
         )
         monkeypatch.setattr(
-            provider_mod, "_load_otel_tracing_components",
+            provider_mod,
+            "_load_otel_tracing_components",
             lambda: (resource_cls, provider_cls, processor_cls, exporter_cls),
         )
         monkeypatch.setattr(provider_mod, "_load_otel_trace_api", lambda: fake_otel)

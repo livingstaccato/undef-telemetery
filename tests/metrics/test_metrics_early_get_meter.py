@@ -160,9 +160,7 @@ class TestGetMeterProviderPassthrough:
 class TestHasRealMeterProviderMutants:
     """Kill _has_real_meter_provider mutmut_3: return False → True when _meter_global_set."""
 
-    def test_returns_false_when_meter_global_set_and_no_active_provider(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_returns_false_when_meter_global_set_and_no_active_provider(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """When we installed then shut down a provider, _meter_global_set=True but
         _meter_provider=None; _has_real_meter_provider must return False."""
         sentinel = object()
@@ -193,13 +191,15 @@ class TestSetupMetricsSetsGlobalFlag:
             get_meter=Mock(return_value="meter"),
         )
         monkeypatch.setattr(
-            prov_mod, "_load_otel_metrics_components",
+            prov_mod,
+            "_load_otel_metrics_components",
             lambda: (provider_cls, resource_cls, reader_cls, exporter_cls),
         )
         monkeypatch.setattr(prov_mod, "_load_otel_metrics_api", lambda: fake_otel)
 
-        from undef.telemetry.metrics.provider import setup_metrics
         from undef.telemetry.config import TelemetryConfig as TC
+        from undef.telemetry.metrics.provider import setup_metrics
+
         setup_metrics(TC.from_env({"OTEL_EXPORTER_OTLP_ENDPOINT": "http://metrics"}))
 
         assert prov_mod._meter_global_set is True

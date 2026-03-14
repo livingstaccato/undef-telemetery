@@ -72,11 +72,16 @@ def test_reconfigure_telemetry_hot_runtime_only(monkeypatch: pytest.MonkeyPatch)
     updated.exporter.logs_timeout_seconds = 5.0
 
     called = {"shutdown": 0, "setup": 0}
-    monkeypatch.setattr("undef.telemetry.setup.shutdown_telemetry", lambda: called.__setitem__("shutdown", 1))
-    monkeypatch.setattr(
-        "undef.telemetry.setup.setup_telemetry",
-        lambda _cfg=None: called.__setitem__("setup", 1) or TelemetryConfig(),
-    )
+
+    def _fake_shutdown() -> None:
+        called["shutdown"] = 1
+
+    def _fake_setup(_cfg: object = None) -> TelemetryConfig:
+        called["setup"] = 1
+        return TelemetryConfig()
+
+    monkeypatch.setattr("undef.telemetry.setup.shutdown_telemetry", _fake_shutdown)
+    monkeypatch.setattr("undef.telemetry.setup.setup_telemetry", _fake_setup)
 
     result = runtime_mod.reconfigure_telemetry(updated)
     assert called == {"shutdown": 0, "setup": 0}
@@ -86,6 +91,7 @@ def test_reconfigure_telemetry_hot_runtime_only(monkeypatch: pytest.MonkeyPatch)
 
 def test_reconfigure_telemetry_raises_when_otel_provider_replacement_required(monkeypatch: pytest.MonkeyPatch) -> None:
     from types import SimpleNamespace
+
     from undef.telemetry import runtime as runtime_mod
     from undef.telemetry.logger import core as logger_core
     from undef.telemetry.metrics import provider as metrics_provider

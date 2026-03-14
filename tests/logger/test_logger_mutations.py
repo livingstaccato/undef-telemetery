@@ -158,6 +158,7 @@ class TestConfigureLoggingForceDefault:
         We verify the second call with same config is a no-op.
         """
         import structlog as sl
+
         from undef.telemetry.logger.core import configure_logging
 
         _reset_logging_for_tests()

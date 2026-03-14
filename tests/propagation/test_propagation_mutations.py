@@ -388,9 +388,7 @@ class TestBindPropagationContext:
         assert detach_calls[-1] == "token-0"
         assert len(detach_calls) == 2
 
-    def test_inner_bind_without_traceparent_does_not_detach_outer_token(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_inner_bind_without_traceparent_does_not_detach_outer_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Clearing an inner bind that had no traceparent must not detach the outer token."""
         attach_calls: list[str] = []
         detach_calls: list[object] = []
@@ -465,8 +463,11 @@ class TestBindPropagationContext:
         ]:
             propagation_mod.bind_propagation_context(
                 propagation_mod.PropagationContext(
-                    traceparent=tp, tracestate=None, baggage=None,
-                    trace_id=tp[3:35], span_id=tp[36:52],
+                    traceparent=tp,
+                    tracestate=None,
+                    baggage=None,
+                    trace_id=tp[3:35],
+                    span_id=tp[36:52],
                 )
             )
         assert attach_calls == ["token-0", "token-1", "token-2"]

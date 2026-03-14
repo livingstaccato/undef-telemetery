@@ -291,6 +291,7 @@ def test_configure_logging_second_call_is_noop_without_force(monkeypatch: pytest
     inspect.signature is unreliable against mutmut trampolines, so we test behavior.
     """
     import structlog as sl
+
     from undef.telemetry.logger import core as lcore
 
     lcore._reset_logging_for_tests()
