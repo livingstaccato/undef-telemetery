@@ -61,6 +61,7 @@ class TestFallbackLazyResolve:
         result = g._resolve_otel()
         assert result is mock_gauge
         assert g._resolved is True
+        mock_meter.create_up_down_counter.assert_called_once_with(name="test.gauge")
 
     def test_histogram_resolves_otel_after_provider_setup(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from undef.telemetry.metrics.fallback import Histogram
@@ -76,6 +77,7 @@ class TestFallbackLazyResolve:
         result = h._resolve_otel()
         assert result is mock_histo
         assert h._resolved is True
+        mock_meter.create_histogram.assert_called_once_with(name="test.histo")
 
     def test_counter_resolve_returns_none_when_no_provider(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from undef.telemetry.metrics.fallback import Counter

@@ -146,12 +146,14 @@ class TestCircuitBreaker:
 
     def test_zero_timeout_skips_circuit_breaker(self) -> None:
         """When timeout_seconds=0, the circuit breaker check is skipped entirely."""
+        import time
+
         from undef.telemetry import resilience as r_mod
 
         set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.0))
         with r_mod._lock:
             r_mod._consecutive_timeouts["logs"] = 10  # well above threshold
-            r_mod._circuit_tripped_at["logs"] = 0.0
+            r_mod._circuit_tripped_at["logs"] = time.monotonic()  # recently tripped
         # Should NOT be blocked — timeout_seconds=0 means no timeout, so no circuit breaker
         assert run_with_resilience("logs", lambda: "bypassed") == "bypassed"
 
@@ -161,11 +163,11 @@ class TestCircuitBreaker:
 
         from undef.telemetry import resilience as r_mod
 
-        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=0.0))
+        set_exporter_policy("logs", ExporterPolicy(retries=0, fail_open=True, timeout_seconds=1.0))
         with r_mod._lock:
             r_mod._consecutive_timeouts["logs"] = 3
             r_mod._circuit_tripped_at["logs"] = time.monotonic() - r_mod._CIRCUIT_BREAKER_COOLDOWN
-        # elapsed == cooldown exactly → should allow probe (not <, so it passes through)
+        # elapsed >= cooldown → should allow probe (not <, so it passes through)
         assert run_with_resilience("logs", lambda: "probe_ok") == "probe_ok"
 
     def test_reset_clears_circuit_tripped_at(self) -> None:
