@@ -129,3 +129,15 @@ def test_enforce_event_schema_policy_matrix() -> None:
     relaxed_name_compat(None, "info", {"event": "bad event"})
     with pytest.raises(EventSchemaError, match="invalid event name"):
         strict_name_strict_schema(None, "info", {"event": "bad event"})
+
+
+def test_save_context_preserves_current_values() -> None:
+    """save_context must snapshot current context, not null it."""
+    from undef.telemetry.logger.context import bind_context, get_context, reset_context, save_context
+
+    bind_context(user="alice")
+    token = save_context()
+    bind_context(user="bob")
+    assert get_context()["user"] == "bob"
+    reset_context(token)
+    assert get_context()["user"] == "alice"

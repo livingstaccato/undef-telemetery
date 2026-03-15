@@ -16,9 +16,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/undef-games/undef-telemetry"
-Repository = "https://github.com/undef-games/undef-telemetry"
-Issues = "https://github.com/undef-games/undef-telemetry/issues"
+Homepage = "https://github.com/livingstaccato/undef-telemetery"
+Repository = "https://github.com/livingstaccato/undef-telemetery"
+Issues = "https://github.com/livingstaccato/undef-telemetery/issues"
 
 [project.optional-dependencies]
 otel = [
@@ -86,6 +86,7 @@ addopts = [
   "--strict-markers",
   "--strict-config",
   "--tb=short",
+  "-m", "not e2e",
   "--cov=src/undef/telemetry",
   "--cov-branch",
   "--cov-report=term-missing",

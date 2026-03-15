@@ -46,22 +46,13 @@ shutdown_telemetry()
 
 ## Environment Variables
 
-- `UNDEF_TELEMETRY_SERVICE_NAME`
-- `UNDEF_TELEMETRY_ENV`
-- `UNDEF_TELEMETRY_VERSION`
-- `UNDEF_TELEMETRY_STRICT_SCHEMA`
-- `UNDEF_LOG_LEVEL`
-- `UNDEF_LOG_FORMAT`
-- `UNDEF_TRACE_ENABLED`
-- `UNDEF_METRICS_ENABLED`
-- `UNDEF_LOG_CODE_ATTRIBUTES`
-- `OTEL_EXPORTER_OTLP_ENDPOINT`
-- `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`
-- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
-- `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`
-- `UNDEF_EXPORTER_LOGS_TIMEOUT_SECONDS`
-- `UNDEF_EXPORTER_TRACES_TIMEOUT_SECONDS`
-- `UNDEF_EXPORTER_METRICS_TIMEOUT_SECONDS`
+The most commonly set variables:
+
+- `UNDEF_TELEMETRY_SERVICE_NAME` — service identity (default: `undef-service`)
+- `UNDEF_LOG_LEVEL` — log level (default: `INFO`)
+- `UNDEF_LOG_FORMAT` — renderer: `console`, `json`, or `pretty` (default: `console`)
+
+See the [Configuration Reference](docs/CONFIGURATION.md) for all 60+ environment variables with types and defaults.
 
 ## Event Naming Rule
 
@@ -91,8 +82,8 @@ Set `OPENOBSERVE_REQUIRED_SIGNALS=logs,metrics,traces` when your runtime has OTe
 
 Script references:
 
-- [Emit all signals example](https://github.com/undef-games/undef-telemetry/blob/main/examples/openobserve/01_emit_all_signals.py)
-- [Verify ingestion example](https://github.com/undef-games/undef-telemetry/blob/main/examples/openobserve/02_verify_ingestion.py)
+- [Emit all signals example](https://github.com/livingstaccato/undef-telemetery/blob/main/examples/openobserve/01_emit_all_signals.py)
+- [Verify ingestion example](https://github.com/livingstaccato/undef-telemetery/blob/main/examples/openobserve/02_verify_ingestion.py)
 
 ## Quality Guarantees
 
@@ -112,12 +103,15 @@ Script references:
 
 ## Docs
 
-- [Operations Runbook](https://github.com/undef-games/undef-telemetry/blob/main/docs/OPERATIONS.md)
-- [Production Profiles](https://github.com/undef-games/undef-telemetry/blob/main/docs/PRODUCTION_PROFILES.md)
-- [Architecture](https://github.com/undef-games/undef-telemetry/blob/main/docs/ARCHITECTURE.md)
-- [Telemetry Conventions](https://github.com/undef-games/undef-telemetry/blob/main/docs/CONVENTIONS.md)
-- [Compliance Notes](https://github.com/undef-games/undef-telemetry/blob/main/docs/COMPLIANCE.md)
-- [Release Runbook](https://github.com/undef-games/undef-telemetry/blob/main/docs/RELEASE.md)
-- [Examples](https://github.com/undef-games/undef-telemetry/blob/main/examples/README.md)
-- [Main CI Workflow](https://github.com/undef-games/undef-telemetry/blob/main/.github/workflows/ci.yml)
-- [Release Workflow](https://github.com/undef-games/undef-telemetry/blob/main/.github/workflows/release.yml)
+- [Configuration Reference](https://github.com/livingstaccato/undef-telemetery/blob/main/docs/CONFIGURATION.md)
+- [API Reference](https://github.com/livingstaccato/undef-telemetery/blob/main/docs/API.md)
+- [Internals](https://github.com/livingstaccato/undef-telemetery/blob/main/docs/INTERNALS.md)
+- [Operations Runbook](https://github.com/livingstaccato/undef-telemetery/blob/main/docs/OPERATIONS.md)
+- [Production Profiles](https://github.com/livingstaccato/undef-telemetery/blob/main/docs/PRODUCTION_PROFILES.md)
+- [Architecture](https://github.com/livingstaccato/undef-telemetery/blob/main/docs/ARCHITECTURE.md)
+- [Telemetry Conventions](https://github.com/livingstaccato/undef-telemetery/blob/main/docs/CONVENTIONS.md)
+- [Compliance Notes](https://github.com/livingstaccato/undef-telemetery/blob/main/docs/COMPLIANCE.md)
+- [Release Runbook](https://github.com/livingstaccato/undef-telemetery/blob/main/docs/RELEASE.md)
+- [Examples](https://github.com/livingstaccato/undef-telemetery/blob/main/examples/README.md)
+- [Main CI Workflow](https://github.com/livingstaccato/undef-telemetery/blob/main/.github/workflows/ci.yml)
+- [Release Workflow](https://github.com/livingstaccato/undef-telemetery/blob/main/.github/workflows/release.yml)
